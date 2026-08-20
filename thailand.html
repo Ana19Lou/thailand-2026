@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0A2E2A">
+    <title>Tailândia 2026</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap');
+
+        :root {
+            --bg: #F7F5EF; --surface: #FFFFFF; --ink: #16302C; --ink-soft: #5C7570;
+            --jade: #0E7C66; --jade-deep: #0A2E2A; --gold: #C9A227; --line: #E7E3D6; --danger: #E0574C;
+        }
+
+        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+        html, body { overscroll-behavior: none; height: 100%; background: var(--jade-deep); font-family: 'Inter', sans-serif; color: var(--ink); margin: 0; padding: 0; }
+        h1, h2, h3, .display { font-family: 'Fraunces', serif; }
+
+        #map { height: 34vh; width: 100%; z-index: 10; flex-shrink: 0; }
+
+        .app-container {
+            display: flex; flex-direction: column; height: 100dvh; width: 100%;
+            max-width: 800px; margin: 0 auto; background-color: var(--bg);
+            position: relative; overflow: hidden; box-shadow: 0 0 30px rgba(0,0,0,0.3);
+        }
+        .content-area {
+            flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch;
+            padding-bottom: calc(104px + env(safe-area-inset-bottom));
+            border-radius: 28px 28px 0 0; background: var(--bg);
+            margin-top: -22px; z-index: 20; position: relative;
+            box-shadow: 0 -8px 24px rgba(10,46,42,0.12);
+        }
+        .content-area::-webkit-scrollbar { display: none; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.35s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        #offline-banner { display: none; color: #fff; font-size: 11px; text-align: center; padding: 7px 12px; font-weight: 600; z-index: 100; position: relative; }
+
+        header.app-header {
+            position: absolute; top: 0; width: 100%; z-index: 30;
+            padding: calc(16px + env(safe-area-inset-top)) 20px 16px;
+            background: linear-gradient(180deg, rgba(10,46,42,0.92) 0%, rgba(10,46,42,0.55) 55%, transparent 100%);
+            color: #fff; pointer-events: none; display: flex; justify-content: space-between; align-items: flex-start;
+        }
+        .eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); margin: 0 0 2px; }
+        .header-title { font-size: 17px; font-weight: 600; margin: 0; color: #fff; }
+        .header-sub { font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.85); margin-top: 4px; display: flex; align-items: center; gap: 6px; }
+        .day-badge { background: var(--gold); color: var(--jade-deep); font-weight: 700; font-size: 11px; padding: 6px 12px; border-radius: 99px; white-space: nowrap; }
+
+        nav.day-nav {
+            position: absolute; bottom: 0; width: 100%; z-index: 50;
+            background: rgba(255,255,255,0.96); backdrop-filter: blur(12px); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom);
+        }
+        #bottom-nav { display: flex; overflow-x: auto; gap: 4px; padding: 10px 10px; scrollbar-width: none; }
+        #bottom-nav::-webkit-scrollbar { display: none; }
+        .nav-item { flex-shrink: 0; width: 58px; padding: 7px 4px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; cursor: pointer; color: var(--ink-soft); transition: background 0.2s; }
+        .nav-item .nav-date { font-size: 12px; font-weight: 700; font-family: 'Fraunces', serif; }
+        .nav-item .nav-day { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 1px; opacity: 0.7; }
+        .nav-item .nav-indicator { margin-top: 5px; height: 3px; width: 18px; border-radius: 99px; background: transparent; }
+        .nav-item.active { color: var(--jade-deep); background: rgba(201,162,39,0.14); }
+        .nav-item.active .nav-indicator { background: var(--gold); }
+
+        .timeline { position: relative; }
+        .timeline::before { content: ''; position: absolute; left: 15px; top: 8px; bottom: 8px; width: 2px; background: repeating-linear-gradient(to bottom, var(--line) 0 6px, transparent 6px 11px); z-index: 0; }
+        .step-row { position: relative; z-index: 1; }
+        .step-dot { width: 30px; height: 30px; border-radius: 50%; background: var(--jade); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; box-shadow: 0 2px 6px rgba(14,124,102,0.35); }
+        .step-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; box-shadow: 0 1px 2px rgba(22,48,44,0.04); transition: transform 0.12s ease, border-color 0.12s ease; cursor: pointer; }
+        .step-card:active { transform: scale(0.98); border-color: var(--jade); }
+
+        .transit-pill {
+            display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; padding: 6px 14px; 
+            border-radius: 99px; margin: 6px 0 14px 42px; cursor: pointer; transition: transform 0.12s ease; 
+            background: transparent; color: var(--ink-soft); border: 1px dashed var(--ink-soft); 
+        }
+        .transit-pill:active { transform: scale(0.96); background: #f0f0f0; }
+
+        .hotel-card { background: linear-gradient(135deg, var(--jade-deep), #0f4a43); color: #fff; border-radius: 18px; padding: 14px 16px; display: flex; gap: 12px; align-items: center; margin-bottom: 22px; }
+        .sync-btn { font-size: 11px; font-weight: 700; color: var(--jade); background: #E9F5F2; padding: 7px 12px; border-radius: 99px; border: none; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: transform 0.12s; pointer-events: auto; }
+        .sync-btn:active { transform: scale(0.95); }
+        .sync-btn.syncing i { animation: spin 0.8s linear infinite; }
+        .location-tag { display: inline-flex; align-items: center; gap: 5px; background: var(--jade-deep); color: #fff; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 11px; border-radius: 99px; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div id="offline-banner"></div>
+        <header class="app-header">
+            <div>
+                <p class="eyebrow">Tailândia · 2026</p>
+                <h1 class="header-title">Roteiro da viagem</h1>
+                <p class="header-sub" id="header-location"><i class="fa-solid fa-bed"></i> A carregar...</p>
+            </div>
+            <div class="day-badge" id="quick-day-badge">...</div>
+        </header>
+        <div id="map"></div>
+        <div class="content-area" id="content-container">
+            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; padding:40px 24px; text-align:center; color:var(--ink-soft);">
+                <i class="fa-solid fa-compass" style="font-size:38px; margin-bottom:14px; color:var(--jade); animation: spin 1.6s linear infinite;"></i>
+                <p style="font-weight:700; font-size:14px;">A carregar o teu roteiro...</p>
+            </div>
+        </div>
+        <nav class="day-nav">
+            <div id="bottom-nav"></div>
+        </nav>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/14TPUDpY6H1zdEYGDVELXBw4QDgmC7tv57lcs_iweP5I/gviz/tq?tqx=out:csv&gid=0"; 
+        const STORAGE_DATA_KEY = 'tailandia_roteiro_offline';
+        const STORAGE_SYNC_TIME_KEY = 'tailandia_ultima_sync';
+
+        let map;
+        let routeLayerGroup;
+        let globalItinerary = [];
+
+        async function bootApp() {
+            initMap();
+            const dadosOffline = localStorage.getItem(STORAGE_DATA_KEY);
+            if (dadosOffline && dadosOffline !== "[]") {
+                globalItinerary = JSON.parse(dadosOffline);
+                renderUI(globalItinerary);
+            }
+            await fetchDadosDoRoteiro();
+        }
+
+        async function fetchDadosDoRoteiro() {
+            const btns = document.querySelectorAll('.sync-btn');
+            btns.forEach(b => b.classList.add('syncing'));
+            document.getElementById('header-location').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> A sincronizar Excel...';
+
+            const urlDireta = GOOGLE_SHEET_CSV_URL + "&_t=" + new Date().getTime();
+
+            try {
+                const res = await fetch(urlDireta);
+                if (!res.ok) throw new Error("Falha ao ir buscar dados");
+                const textoCsv = await res.text();
+
+                Papa.parse(textoCsv, {
+                    header: true, skipEmptyLines: true,
+                    complete: function(results) {
+                        globalItinerary = transformarCSVemItinerario(results.data);
+                        if (globalItinerary.length === 0) throw new Error("Excel Vazio");
+                        localStorage.setItem(STORAGE_DATA_KEY, JSON.stringify(globalItinerary));
+                        const horaAtual = new Date().toLocaleString('pt-PT');
+                        localStorage.setItem(STORAGE_SYNC_TIME_KEY, horaAtual);
+                        mostrarBannerSucesso(horaAtual);
+                        renderUI(globalItinerary);
+                    }
+                });
+            } catch (error) {
+                console.error("Erro final:", error);
+                const dadosOffline = localStorage.getItem(STORAGE_DATA_KEY);
+                if (dadosOffline && dadosOffline !== "[]") {
+                    globalItinerary = JSON.parse(dadosOffline);
+                    renderUI(globalItinerary);
+                    mostrarBannerAviso("A usar dados locais (Modo Offline)");
+                } else {
+                    mostrarEstadoErro("Não foi possível ligar à folha. Verifica se está publicada na Web.");
+                }
+            } finally {
+                btns.forEach(b => b.classList.remove('syncing'));
+            }
+        }
+
+        function mostrarBannerSucesso(hora) {
+            const banner = document.getElementById('offline-banner');
+            banner.style.display = 'block'; banner.style.backgroundColor = '#0E7C66';
+            banner.innerHTML = `<i class="fa-solid fa-check mr-1"></i> Sincronizado com sucesso! (${globalItinerary.length} dias)`;
+            setTimeout(() => { banner.style.display = 'none'; }, 3500);
+        }
+
+        function mostrarBannerAviso(msg) {
+            const banner = document.getElementById('offline-banner');
+            banner.style.display = 'block'; banner.style.backgroundColor = '#E7A33E';
+            banner.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> ${msg}`;
+        }
+
+        function mostrarEstadoErro(msg) {
+            const container = document.getElementById('content-container');
+            container.innerHTML = `
+                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; padding:40px 30px; text-align:center; color:var(--ink-soft);">
+                    <i class="fa-solid fa-triangle-exclamation" style="font-size:34px; margin-bottom:14px; color:var(--danger);"></i>
+                    <p style="font-weight:700; font-size:14px; color:var(--ink); margin-bottom:6px;">Erro de Sincronização</p>
+                    <p style="font-size:12.5px; margin-bottom:18px;">${msg}</p>
+                    <button onclick="fetchDadosDoRoteiro()" class="sync-btn"><i class="fa-solid fa-rotate"></i> Tentar de novo</button>
+                </div>`;
+        }
+
+        function transformarCSVemItinerario(linhasCSV) {
+            const diasMap = {};
+            const itinerarioAgrupado = [];
+
+            linhasCSV.forEach((linha) => {
+                const row = {};
+                for (let key in linha) {
+                    const safeKey = key.toLowerCase()
+                                       .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                                       .replace(/[^a-z0-9]/g, '');
+                    row[safeKey] = linha[key];
+                }
+
+                const diaVal = row['dia'];
+                if (!diaVal || String(diaVal).trim() === "") return;
+
+                const idDia = "dia_" + String(diaVal).trim();
+                if (!diasMap[idDia]) {
+                    diasMap[idDia] = {
+                        id: idDia,
+                        dayNum: String(diaVal).trim(),
+                        date: row['data'] || "",
+                        title: row['titulo'] || "",
+                        location: row['localizacao'] || row['local'] || "",
+                        hotel: row['hotel'] || row['alojamento'] || "",
+                        coords: []
+                    };
+                    itinerarioAgrupado.push(diasMap[idDia]);
+                }
+
+                const tTipo = row['transportetipo'] || row['transporte'] || "";
+                const tTempo = row['transportetempo'] || row['tempo'] || "";
+                const tIcone = row['transporteicone'] || row['icone'] || "fa-arrow-right";
+                const tNota = row['transportenota'] || row['nota'] || "";
+
+                let transporteLocal = null;
+                if (tTipo && tTipo !== "-" && tTipo.trim() !== "") {
+                    transporteLocal = {
+                        type: tTipo.trim(),
+                        time: tTempo.trim(),
+                        icon: tIcone.trim(),
+                        note: tNota.trim()
+                    };
+                }
+
+                const latRaw = row['latitude'] || row['lat'] || "";
+                const lngRaw = row['longitude'] || row['lng'] || row['lon'] || "";
+                const lat = parseFloat(String(latRaw).replace(',', '.'));
+                const lng = parseFloat(String(lngRaw).replace(',', '.'));
+
+                diasMap[idDia].coords.push({
+                    name: row['nomelocal'] || row['local'] || row['nome'] || "",
+                    lat: lat,
+                    lng: lng,
+                    desc: row['descricao'] || "",
+                    transport: transporteLocal
+                });
+            });
+
+            return itinerarioAgrupado;
+        }
+
+        function initMap() {
+            map = L.map('map', { zoomControl: false }).setView([13.7563, 100.5018], 6);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
+            routeLayerGroup = L.layerGroup().addTo(map);
+            setTimeout(() => { map.invalidateSize(); }, 400);
+        }
+
+        function renderRouteOnMap(dayData) {
+            routeLayerGroup.clearLayers();
+            const validCoords = dayData.coords.filter(c => !isNaN(c.lat) && !isNaN(c.lng));
+            if (validCoords.length === 0) return;
+            const points = validCoords.map(c => [c.lat, c.lng]);
+
+            validCoords.forEach((coord, idx) => {
+                const color = idx === 0 ? '#0E7C66' : (idx === points.length - 1 ? '#E0574C' : '#C9A227');
+                const customIcon = L.divIcon({
+                    className: 'dummy',
+                    html: `<div style="background-color:${color}; width:24px; height:24px; border-radius:50%; border:3px solid white; box-shadow:0 2px 6px rgba(0,0,0,0.3); display:flex; align-items:center; justify-content:center; color:white; font-size:10px; font-weight:800;">${idx + 1}</div>`,
+                    iconSize: [24, 24], iconAnchor: [12, 12]
+                });
+
+                // CORREÇÃO: Pesquisar pelo Nome do Sítio + Localidade em vez das Coordenadas
+                const searchName = encodeURIComponent(coord.name + ' ' + dayData.location);
+
+                L.marker([coord.lat, coord.lng], { icon: customIcon })
+                    .bindPopup(`<b>${idx + 1}. ${coord.name}</b><br><span style="font-size:11px;color:gray;">${coord.desc}</span>`)
+                    .on('click', () => window.open(`https://www.google.com/maps/search/?api=1&query=${searchName}`, '_blank'))
+                    .addTo(routeLayerGroup);
+            });
+
+            if (points.length > 1) {
+                map.fitBounds(L.polyline(points).getBounds(), { padding: [40, 40], paddingTopLeft: [20, 90] });
+            } else { map.setView(points[0], 14); }
+
+            for (let i = 0; i < points.length - 1; i++) {
+                const p1 = points[i], p2 = points[i + 1];
+                fetch(`https://router.project-osrm.org/route/v1/driving/${p1[1]},${p1[0]};${p2[1]},${p2[0]}?geometries=geojson`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+                            L.polyline(data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]), { color: '#0E7C66', weight: 4, opacity: 0.85 }).addTo(routeLayerGroup);
+                        } else {
+                            L.polyline([p1, p2], { color: '#0E7C66', weight: 4, dashArray: '6, 8', opacity: 0.85 }).addTo(routeLayerGroup);
+                        }
+                    })
+                    .catch(() => L.polyline([p1, p2], { color: '#0E7C66', weight: 4, dashArray: '6, 8', opacity: 0.85 }).addTo(routeLayerGroup));
+            }
+        }
+
+        function renderUI(itinerario) {
+            const container = document.getElementById('content-container');
+            const nav = document.getElementById('bottom-nav');
+            container.innerHTML = ''; nav.innerHTML = '';
+
+            itinerario.forEach((day, index) => {
+                const navBtn = document.createElement('div');
+                navBtn.className = `nav-item ${index === 0 ? 'active' : ''}`; navBtn.id = `nav-${day.id}`;
+                navBtn.innerHTML = `<div class="nav-date">${day.date}</div><div class="nav-day">Dia ${day.dayNum}</div><div class="nav-indicator"></div>`;
+                navBtn.onclick = () => selectDay(index);
+                nav.appendChild(navBtn);
+
+                const panel = document.createElement('div');
+                panel.id = `panel-${day.id}`; panel.className = `tab-content ${index === 0 ? 'active' : ''}`;
+                panel.style.padding = '22px 18px 8px';
+
+                let stepsHtml = '<div class="timeline">';
+                day.coords.forEach((coord, i) => {
+                    const hasCoords = !isNaN(coord.lat) && !isNaN(coord.lng);
+                    
+                    // CORREÇÃO: Variável com o nome do sítio atual formatado
+                    const searchOrig = encodeURIComponent(coord.name + ' ' + day.location);
+                    
+                    stepsHtml += `
+                        <div class="step-row" style="display:flex; align-items:flex-start; gap:12px; margin-bottom:8px;"
+                             ${hasCoords ? `onclick="window.open('https://www.google.com/maps/search/?api=1&query=${searchOrig}', '_blank')"` : ''}>
+                            <div class="step-dot">${i + 1}</div>
+                            <div class="step-card" style="flex:1;">
+                                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                                    <h4 style="font-weight:700; font-size:13.5px; line-height:1.3; margin:0; color:var(--ink);">${coord.name}</h4>
+                                    ${hasCoords ? '<i class="fa-solid fa-arrow-up-right-from-square" style="color:#CBD5E1; font-size:10px; margin-top:2px;"></i>' : ''}
+                                </div>
+                                ${coord.desc ? `<p style="font-size:12px; color:var(--ink-soft); margin:4px 0 0;">${coord.desc}</p>` : ''}
+                            </div>
+                        </div>`;
+
+                    if (coord.transport) {
+                        let searchDest = searchOrig; // Backup caso não haja destino
+                        if (i < day.coords.length - 1) { 
+                            // CORREÇÃO: Enviar os nomes reais de Origem e Destino para o modo Navegação
+                            searchDest = encodeURIComponent(day.coords[i+1].name + ' ' + day.location); 
+                        }
+                        
+                        stepsHtml += `
+                            <div class="transit-pill shadow-sm" onclick="window.open('https://www.google.com/maps/dir/?api=1&origin=${searchOrig}&destination=${searchDest}', '_blank')" title="Navegar no Google Maps">
+                                <i class="fa-solid ${coord.transport.icon}"></i>
+                                <span>${coord.transport.type}</span> <span style="opacity:0.5;">•</span> <span>${coord.transport.time}</span>
+                            </div>
+                            ${coord.transport.note ? `<div style="font-size:10.5px; color:var(--ink-soft); margin:-4px 0 14px 42px;">${coord.transport.note}</div>` : `<div style="margin-bottom:12px;"></div>`}`;
+                    }
+                });
+                stepsHtml += '</div>';
+
+                panel.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <span class="location-tag"><i class="fa-solid fa-location-dot"></i> ${day.location}</span>
+                        <button onclick="fetchDadosDoRoteiro()" class="sync-btn"><i class="fa-solid fa-rotate"></i> Sync</button>
+                    </div>
+                    <h2 class="display" style="font-size:22px; font-weight:600; line-height:1.2; margin:0 0 14px;">${day.title}</h2>
+                    <div class="hotel-card">
+                        <i class="fa-solid fa-bed" style="color:var(--gold); font-size:16px;"></i>
+                        <div><div style="font-size:9px; text-transform:uppercase; letter-spacing:0.06em; font-weight:700; color:var(--gold);">Alojamento</div><div style="font-size:13px; font-weight:600;">${day.hotel}</div></div>
+                    </div>
+                    ${stepsHtml}`;
+                container.appendChild(panel);
+            });
+            if (itinerario.length > 0) selectDay(0);
+        }
+
+        function selectDay(index) {
+            const day = globalItinerary[index];
+            document.getElementById('header-location').innerHTML = `<i class="fa-solid fa-bed"></i> ${day.hotel.split('(')[0].trim()}`;
+            document.getElementById('quick-day-badge').innerText = `Dia ${day.dayNum}`;
+            document.querySelectorAll('.tab-content').forEach(p => p.classList.remove('active'));
+            document.getElementById(`panel-${day.id}`).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+            const activeNav = document.getElementById(`nav-${day.id}`); activeNav.classList.add('active');
+            activeNav.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            renderRouteOnMap(day); document.getElementById('content-container').scrollTop = 0;
+        }
+
+        window.addEventListener('load', bootApp);
+    </script>
+</body>
+</html>

@@ -17,90 +17,188 @@
         :root {
             --bg: #F7F5EF; --surface: #FFFFFF; --ink: #16302C; --ink-soft: #5C7570;
             --jade: #0E7C66; --jade-deep: #0A2E2A; --gold: #C9A227; --line: #E7E3D6; --danger: #E0574C;
+            --shadow-color: 22,48,44;
+        }
+        [data-theme="dark"] {
+            --bg: #0E1E1B; --surface: #16302C; --ink: #EEEBE0; --ink-soft: #9FB3AE;
+            --jade: #22B594; --jade-deep: #0A2E2A; --gold: #E4C567; --line: #24413C; --danger: #FF8177;
+            --shadow-color: 0,0,0;
         }
 
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         html, body { overscroll-behavior: none; height: 100%; background: var(--jade-deep); font-family: 'Inter', sans-serif; color: var(--ink); margin: 0; padding: 0; }
         h1, h2, h3, .display { font-family: 'Fraunces', serif; }
 
-        #map { height: 34vh; width: 100%; z-index: 10; flex-shrink: 0; }
+        #map { height: 32vh; width: 100%; z-index: 10; flex-shrink: 0; filter: saturate(1.05); }
+        [data-theme="dark"] #map { filter: saturate(0.9) brightness(0.85) hue-rotate(2deg); }
 
         .app-container {
             display: flex; flex-direction: column; height: 100dvh; width: 100%;
             max-width: 800px; margin: 0 auto; background-color: var(--bg);
             position: relative; overflow: hidden; box-shadow: 0 0 30px rgba(0,0,0,0.3);
+            transition: background-color 0.3s ease;
         }
         .content-area {
             flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch;
-            padding-bottom: calc(104px + env(safe-area-inset-bottom));
+            padding-bottom: calc(112px + env(safe-area-inset-bottom));
             border-radius: 28px 28px 0 0; background: var(--bg);
             margin-top: -22px; z-index: 20; position: relative;
-            box-shadow: 0 -8px 24px rgba(10,46,42,0.12);
+            box-shadow: 0 -8px 24px rgba(var(--shadow-color),0.12);
+            transition: background-color 0.3s ease;
         }
         .content-area::-webkit-scrollbar { display: none; }
 
         .tab-content { display: none; }
-        .tab-content.active { display: block; animation: fadeIn 0.35s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .tab-content.active { display: block; animation: slideIn 0.32s cubic-bezier(.22,.68,.36,1); }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px) scale(0.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes popIn { 0% { transform: scale(0.6); opacity:0; } 60% { transform: scale(1.12); } 100% { transform: scale(1); opacity:1; } }
+        @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
         #offline-banner { display: none; color: #fff; font-size: 11px; text-align: center; padding: 7px 12px; font-weight: 600; z-index: 100; position: relative; }
 
         header.app-header {
             position: absolute; top: 0; width: 100%; z-index: 30;
             padding: calc(16px + env(safe-area-inset-top)) 20px 16px;
-            background: linear-gradient(180deg, rgba(10,46,42,0.92) 0%, rgba(10,46,42,0.55) 55%, transparent 100%);
-            color: #fff; pointer-events: none; display: flex; justify-content: space-between; align-items: flex-start;
+            background: linear-gradient(180deg, rgba(10,46,42,0.94) 0%, rgba(10,46,42,0.58) 55%, transparent 100%);
+            color: #fff; display: flex; justify-content: space-between; align-items: flex-start;
         }
+        .header-left { pointer-events: none; }
         .eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); margin: 0 0 2px; }
         .header-title { font-size: 17px; font-weight: 600; margin: 0; color: #fff; }
-        .header-sub { font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.85); margin-top: 4px; display: flex; align-items: center; gap: 6px; }
-        .day-badge { background: var(--gold); color: var(--jade-deep); font-weight: 700; font-size: 11px; padding: 6px 12px; border-radius: 99px; white-space: nowrap; }
+        .header-sub { font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.85); margin-top: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .weather-chip { display: inline-flex; align-items:center; gap:5px; background: rgba(255,255,255,0.14); padding: 3px 9px; border-radius: 99px; font-weight:600; font-size:11px; }
+
+        .header-right { display: flex; align-items: center; gap: 8px; pointer-events: auto; }
+        .icon-btn { width: 34px; height: 34px; border-radius: 50%; border: none; background: rgba(255,255,255,0.16); color: #fff; display:flex; align-items:center; justify-content:center; font-size: 13px; cursor: pointer; transition: transform 0.15s, background 0.15s; }
+        .icon-btn:active { transform: scale(0.9); background: rgba(255,255,255,0.28); }
+
+        .day-ring {
+            width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            background: conic-gradient(var(--gold) calc(var(--pct,0)*1%), rgba(255,255,255,0.18) 0);
+            flex-shrink: 0; cursor: pointer;
+        }
+        .day-ring-inner {
+            width: 38px; height: 38px; border-radius: 50%; background: var(--jade-deep);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1;
+        }
+        .day-ring-inner .num { font-family: 'Fraunces', serif; font-weight: 700; font-size: 13px; color: #fff; }
+        .day-ring-inner .tot { font-size: 7.5px; color: var(--gold); font-weight: 700; letter-spacing: 0.03em; }
 
         nav.day-nav {
             position: absolute; bottom: 0; width: 100%; z-index: 50;
-            background: rgba(255,255,255,0.96); backdrop-filter: blur(12px); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom);
+            background: rgba(var(--shadow-color) 0 0 0 / 0); backdrop-filter: blur(12px);
+            border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom);
         }
+        [data-theme="light"] nav.day-nav, nav.day-nav { background: color-mix(in srgb, var(--surface) 92%, transparent); }
         #bottom-nav { display: flex; overflow-x: auto; gap: 4px; padding: 10px 10px; scrollbar-width: none; }
         #bottom-nav::-webkit-scrollbar { display: none; }
         .nav-item { flex-shrink: 0; width: 58px; padding: 7px 4px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; cursor: pointer; color: var(--ink-soft); transition: background 0.2s; }
-        .nav-item .nav-date { font-size: 12px; font-weight: 700; font-family: 'Fraunces', serif; }
+        .nav-item .nav-date { font-size: 12px; font-weight: 700; font-family: 'Fraunces', serif; color: var(--ink); }
         .nav-item .nav-day { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-top: 1px; opacity: 0.7; }
         .nav-item .nav-indicator { margin-top: 5px; height: 3px; width: 18px; border-radius: 99px; background: transparent; }
         .nav-item.active { color: var(--jade-deep); background: rgba(201,162,39,0.14); }
+        .nav-item.active .nav-date { color: var(--jade-deep); }
         .nav-item.active .nav-indicator { background: var(--gold); }
+        .nav-item.done .nav-day::after { content: ' ✓'; }
+
+        .fab {
+            position: absolute; right: 16px; bottom: calc(96px + env(safe-area-inset-bottom)); z-index: 55;
+            width: 52px; height: 52px; border-radius: 50%; border: none; cursor: pointer;
+            background: linear-gradient(135deg, var(--gold), #b5891f); color: var(--jade-deep);
+            box-shadow: 0 6px 16px rgba(201,162,39,0.45); font-size: 18px; display:flex; align-items:center; justify-content:center;
+            transition: transform 0.15s;
+        }
+        .fab:active { transform: scale(0.92); }
+
+        .day-progress-wrap { display:flex; align-items:center; gap:8px; margin: 2px 0 16px; }
+        .day-progress-track { flex:1; height:6px; border-radius:99px; background: var(--line); overflow:hidden; }
+        .day-progress-fill { height:100%; background: linear-gradient(90deg, var(--jade), var(--gold)); border-radius:99px; transition: width 0.35s ease; }
+        .day-progress-label { font-size:10.5px; font-weight:700; color: var(--ink-soft); white-space:nowrap; }
 
         .timeline { position: relative; }
         .timeline::before { content: ''; position: absolute; left: 15px; top: 8px; bottom: 8px; width: 2px; background: repeating-linear-gradient(to bottom, var(--line) 0 6px, transparent 6px 11px); z-index: 0; }
         .step-row { position: relative; z-index: 1; }
-        .step-dot { width: 30px; height: 30px; border-radius: 50%; background: var(--jade); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; box-shadow: 0 2px 6px rgba(14,124,102,0.35); }
-        .step-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; box-shadow: 0 1px 2px rgba(22,48,44,0.04); transition: transform 0.12s ease, border-color 0.12s ease; cursor: pointer; }
+        .step-dot { width: 30px; height: 30px; border-radius: 50%; background: var(--jade); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; box-shadow: 0 2px 6px rgba(14,124,102,0.35); transition: background 0.2s; }
+        .step-row.done .step-dot { background: var(--gold); }
+        .step-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; box-shadow: 0 1px 2px rgba(var(--shadow-color),0.04); transition: transform 0.12s ease, border-color 0.12s ease, opacity 0.2s; cursor: pointer; }
         .step-card:active { transform: scale(0.98); border-color: var(--jade); }
+        .step-row.done .step-card { opacity: 0.62; }
+        .step-row.done .step-card h4 { text-decoration: line-through; text-decoration-color: var(--gold); }
+
+        .visit-check { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:10px; color: transparent; cursor:pointer; transition: all 0.15s; background: var(--surface); }
+        .visit-check.checked { background: var(--jade); border-color: var(--jade); color: #fff; animation: popIn 0.25s ease; }
 
         .transit-pill {
-            display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; padding: 6px 14px; 
-            border-radius: 99px; margin: 6px 0 14px 42px; cursor: pointer; transition: transform 0.12s ease; 
-            background: transparent; color: var(--ink-soft); border: 1px dashed var(--ink-soft); 
+            display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; padding: 6px 14px;
+            border-radius: 99px; margin: 6px 0 14px 42px; cursor: pointer; transition: transform 0.12s ease;
+            background: transparent; color: var(--ink-soft); border: 1px dashed var(--ink-soft);
         }
-        .transit-pill:active { transform: scale(0.96); background: #f0f0f0; }
+        .transit-pill:active { transform: scale(0.96); background: rgba(120,120,120,0.08); }
 
-        .hotel-card { background: linear-gradient(135deg, var(--jade-deep), #0f4a43); color: #fff; border-radius: 18px; padding: 14px 16px; display: flex; gap: 12px; align-items: center; margin-bottom: 22px; }
-        .sync-btn { font-size: 11px; font-weight: 700; color: var(--jade); background: #E9F5F2; padding: 7px 12px; border-radius: 99px; border: none; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: transform 0.12s; pointer-events: auto; }
+        .hotel-card { background: linear-gradient(135deg, var(--jade-deep), #0f4a43); color: #fff; border-radius: 18px; padding: 14px 16px; display: flex; gap: 12px; align-items: center; margin-bottom: 16px; }
+        .sync-btn { font-size: 11px; font-weight: 700; color: var(--jade); background: color-mix(in srgb, var(--jade) 12%, var(--surface)); padding: 7px 12px; border-radius: 99px; border: none; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: transform 0.12s; pointer-events: auto; }
         .sync-btn:active { transform: scale(0.95); }
         .sync-btn.syncing i { animation: spin 0.8s linear infinite; }
         .location-tag { display: inline-flex; align-items: center; gap: 5px; background: var(--jade-deep); color: #fff; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 11px; border-radius: 99px; }
+
+        /* Tools bottom sheet */
+        .sheet-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.45); z-index: 90; display: none; }
+        .sheet-overlay.open { display: block; animation: fadeIn 0.2s ease; }
+        .sheet { position: absolute; left:0; right:0; bottom:0; z-index: 95; background: var(--surface); border-radius: 24px 24px 0 0;
+            max-height: 78%; display:flex; flex-direction:column; transform: translateY(100%); transition: transform 0.28s cubic-bezier(.22,.68,.36,1);
+            padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -10px 30px rgba(0,0,0,0.25); }
+        .sheet.open { transform: translateY(0); animation: sheetUp 0.28s cubic-bezier(.22,.68,.36,1); }
+        .sheet-handle { width: 40px; height: 4px; background: var(--line); border-radius: 99px; margin: 10px auto 4px; }
+        .sheet-tabs { display:flex; gap:6px; padding: 8px 16px 4px; }
+        .sheet-tab { flex:1; text-align:center; font-size:11.5px; font-weight:700; padding:9px 6px; border-radius:12px; background: var(--bg); color: var(--ink-soft); cursor:pointer; border:1px solid var(--line); }
+        .sheet-tab.active { background: var(--jade); color:#fff; border-color: var(--jade); }
+        .sheet-body { padding: 14px 18px 24px; overflow-y: auto; }
+        .sheet-pane { display:none; }
+        .sheet-pane.active { display:block; animation: fadeIn 0.2s ease; }
+
+        .tool-row { display:flex; align-items:center; gap:10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+        .tool-row:last-child { border-bottom: none; }
+        .tool-check { width:20px; height:20px; border-radius:6px; border:2px solid var(--line); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:10px; color:transparent; cursor:pointer; }
+        .tool-check.checked { background: var(--jade); border-color: var(--jade); color:#fff; }
+        .tool-text { flex:1; font-size:13px; }
+        .tool-row.checked .tool-text { text-decoration: line-through; color: var(--ink-soft); }
+        .tool-del { color: var(--danger); background:none; border:none; font-size:13px; cursor:pointer; padding:4px; }
+
+        .add-row { display:flex; gap:8px; margin-top: 10px; }
+        .add-row input { flex:1; border:1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 10px; padding: 9px 10px; font-size: 13px; font-family: 'Inter', sans-serif; }
+        .add-row button { background: var(--jade); color:#fff; border:none; border-radius:10px; padding: 0 16px; font-weight:700; font-size: 13px; cursor:pointer; }
+
+        .budget-total { display:flex; justify-content:space-between; align-items:baseline; background: var(--bg); border-radius:14px; padding: 12px 16px; margin-bottom: 12px; }
+        .budget-total .label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color: var(--ink-soft); }
+        .budget-total .amount { font-family:'Fraunces',serif; font-size: 22px; font-weight:700; color: var(--jade); }
+
+        .conv-box { display:flex; align-items:center; gap:10px; background: var(--bg); border-radius: 14px; padding: 12px; margin-bottom:10px; }
+        .conv-box input { width: 100%; border:none; background:transparent; font-size: 20px; font-weight:700; font-family:'Fraunces',serif; color: var(--ink); outline:none; }
+        .conv-box .cur { font-size:11px; font-weight:800; color: var(--ink-soft); background: var(--surface); padding: 4px 10px; border-radius: 99px; border: 1px solid var(--line); }
+        .conv-rate-note { font-size: 10.5px; color: var(--ink-soft); text-align:center; margin-top: 2px; }
+        .swap-btn { width:34px; height:34px; border-radius:50%; border:none; background: var(--jade); color:#fff; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
     </style>
 </head>
 <body>
-    <div class="app-container">
+    <div class="app-container" id="app-root">
         <div id="offline-banner"></div>
         <header class="app-header">
-            <div>
+            <div class="header-left">
                 <p class="eyebrow">Tailândia · 2026</p>
                 <h1 class="header-title">Roteiro da viagem</h1>
                 <p class="header-sub" id="header-location"><i class="fa-solid fa-bed"></i> A carregar...</p>
             </div>
-            <div class="day-badge" id="quick-day-badge">...</div>
+            <div class="header-right">
+                <button class="icon-btn" id="theme-toggle" title="Alternar tema"><i class="fa-solid fa-moon"></i></button>
+                <div class="day-ring" id="day-ring" style="--pct:0;" onclick="openSheet()">
+                    <div class="day-ring-inner">
+                        <span class="num" id="ring-num">–</span>
+                        <span class="tot" id="ring-tot">DIA</span>
+                    </div>
+                </div>
+            </div>
         </header>
         <div id="map"></div>
         <div class="content-area" id="content-container">
@@ -109,30 +207,115 @@
                 <p style="font-weight:700; font-size:14px;">A carregar o teu roteiro...</p>
             </div>
         </div>
+
+        <button class="fab" onclick="openSheet()" title="Ferramentas da viagem"><i class="fa-solid fa-suitcase-rolling"></i></button>
+
         <nav class="day-nav">
             <div id="bottom-nav"></div>
         </nav>
+
+        <!-- Tools bottom sheet -->
+        <div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet()"></div>
+        <div class="sheet" id="tools-sheet">
+            <div class="sheet-handle"></div>
+            <div class="sheet-tabs">
+                <div class="sheet-tab active" data-pane="pane-packing" onclick="switchPane(this)"><i class="fa-solid fa-suitcase"></i> Mala</div>
+                <div class="sheet-tab" data-pane="pane-budget" onclick="switchPane(this)"><i class="fa-solid fa-wallet"></i> Gastos</div>
+                <div class="sheet-tab" data-pane="pane-currency" onclick="switchPane(this)"><i class="fa-solid fa-coins"></i> Câmbio</div>
+            </div>
+            <div class="sheet-body">
+                <div class="sheet-pane active" id="pane-packing">
+                    <div id="packing-list"></div>
+                    <div class="add-row">
+                        <input type="text" id="packing-input" placeholder="Adicionar item...">
+                        <button onclick="addPackingItem()">Adicionar</button>
+                    </div>
+                </div>
+                <div class="sheet-pane" id="pane-budget">
+                    <div class="budget-total">
+                        <span class="label">Total gasto</span>
+                        <span class="amount" id="budget-total-amount">€0</span>
+                    </div>
+                    <div id="budget-list"></div>
+                    <div class="add-row">
+                        <input type="text" id="budget-desc" placeholder="Descrição" style="flex:1.4;">
+                        <input type="number" id="budget-amount" placeholder="€" style="flex:0.7;">
+                        <button onclick="addExpense()">+</button>
+                    </div>
+                </div>
+                <div class="sheet-pane" id="pane-currency">
+                    <div class="conv-box">
+                        <span class="cur">EUR</span>
+                        <input type="number" id="conv-eur" placeholder="0" oninput="convertFrom('eur')">
+                    </div>
+                    <div style="display:flex; justify-content:center; margin: -4px 0;"><div class="swap-btn"><i class="fa-solid fa-arrow-down"></i></div></div>
+                    <div class="conv-box">
+                        <span class="cur">THB</span>
+                        <input type="number" id="conv-thb" placeholder="0" oninput="convertFrom('thb')">
+                    </div>
+                    <p class="conv-rate-note" id="conv-rate-note">A obter taxa de câmbio...</p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/14TPUDpY6H1zdEYGDVELXBw4QDgmC7tv57lcs_iweP5I/gviz/tq?tqx=out:csv&gid=0"; 
+        const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/14TPUDpY6H1zdEYGDVELXBw4QDgmC7tv57lcs_iweP5I/gviz/tq?tqx=out:csv&gid=0";
         const STORAGE_DATA_KEY = 'tailandia_roteiro_offline';
         const STORAGE_SYNC_TIME_KEY = 'tailandia_ultima_sync';
+        const STORAGE_VISITED_KEY = 'tailandia_visitados';
+        const STORAGE_PACKING_KEY = 'tailandia_mala';
+        const STORAGE_BUDGET_KEY = 'tailandia_gastos';
+        const STORAGE_THEME_KEY = 'tailandia_tema';
+
+        const DEFAULT_PACKING = [
+            "Passaporte + visto (se aplicável)", "Seguro de viagem", "Adaptador de tomada (Tipo A/C/O)",
+            "Powerbank", "Protetor solar", "Repelente de mosquitos", "Roupa leve e respirável",
+            "Fato de banho", "Chinelos", "Medicação pessoal", "Cópias digitais dos documentos"
+        ];
 
         let map;
         let routeLayerGroup;
         let globalItinerary = [];
+        let visitedMap = {};
+        let eurToThb = null;
+
+        function loadJSON(key, fallback) {
+            try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch(e) { return fallback; }
+        }
+        function saveJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {} }
 
         async function bootApp() {
+            initTheme();
             initMap();
+            visitedMap = loadJSON(STORAGE_VISITED_KEY, {});
             const dadosOffline = localStorage.getItem(STORAGE_DATA_KEY);
             if (dadosOffline && dadosOffline !== "[]") {
                 globalItinerary = JSON.parse(dadosOffline);
                 renderUI(globalItinerary);
             }
+            initTools();
+            initCurrency();
             await fetchDadosDoRoteiro();
+        }
+
+        function initTheme() {
+            const saved = localStorage.getItem(STORAGE_THEME_KEY);
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const theme = saved || (prefersDark ? 'dark' : 'light');
+            applyTheme(theme);
+            document.getElementById('theme-toggle').onclick = () => {
+                const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+                applyTheme(cur === 'dark' ? 'light' : 'dark');
+            };
+        }
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem(STORAGE_THEME_KEY, theme);
+            const icon = document.querySelector('#theme-toggle i');
+            icon.className = theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
         }
 
         async function fetchDadosDoRoteiro() {
@@ -281,7 +464,6 @@
                     iconSize: [24, 24], iconAnchor: [12, 12]
                 });
 
-                // CORREÇÃO: Pesquisar pelo Nome do Sítio + Localidade em vez das Coordenadas
                 const searchName = encodeURIComponent(coord.name + ' ' + dayData.location);
 
                 L.marker([coord.lat, coord.lng], { icon: customIcon })
@@ -309,14 +491,24 @@
             }
         }
 
+        function dayCompletion(day) {
+            const total = day.coords.length;
+            if (total === 0) return { done: 0, total: 0, pct: 0 };
+            let done = 0;
+            day.coords.forEach((c, i) => { if (visitedMap[day.id + '_' + i]) done++; });
+            return { done, total, pct: Math.round((done / total) * 100) };
+        }
+
         function renderUI(itinerario) {
             const container = document.getElementById('content-container');
             const nav = document.getElementById('bottom-nav');
             container.innerHTML = ''; nav.innerHTML = '';
 
             itinerario.forEach((day, index) => {
+                const comp = dayCompletion(day);
                 const navBtn = document.createElement('div');
-                navBtn.className = `nav-item ${index === 0 ? 'active' : ''}`; navBtn.id = `nav-${day.id}`;
+                navBtn.className = `nav-item ${index === 0 ? 'active' : ''} ${comp.total > 0 && comp.done === comp.total ? 'done' : ''}`;
+                navBtn.id = `nav-${day.id}`;
                 navBtn.innerHTML = `<div class="nav-date">${day.date}</div><div class="nav-day">Dia ${day.dayNum}</div><div class="nav-indicator"></div>`;
                 navBtn.onclick = () => selectDay(index);
                 nav.appendChild(navBtn);
@@ -328,30 +520,29 @@
                 let stepsHtml = '<div class="timeline">';
                 day.coords.forEach((coord, i) => {
                     const hasCoords = !isNaN(coord.lat) && !isNaN(coord.lng);
-                    
-                    // CORREÇÃO: Variável com o nome do sítio atual formatado
                     const searchOrig = encodeURIComponent(coord.name + ' ' + day.location);
-                    
+                    const visitKey = day.id + '_' + i;
+                    const isDone = !!visitedMap[visitKey];
+
                     stepsHtml += `
-                        <div class="step-row" style="display:flex; align-items:flex-start; gap:12px; margin-bottom:8px;"
-                             ${hasCoords ? `onclick="window.open('https://www.google.com/maps/search/?api=1&query=${searchOrig}', '_blank')"` : ''}>
+                        <div class="step-row ${isDone ? 'done' : ''}" id="row-${visitKey}" style="display:flex; align-items:flex-start; gap:12px; margin-bottom:8px;">
                             <div class="step-dot">${i + 1}</div>
-                            <div class="step-card" style="flex:1;">
+                            <div class="step-card" style="flex:1;" ${hasCoords ? `onclick="window.open('https://www.google.com/maps/search/?api=1&query=${searchOrig}', '_blank')"` : ''}>
                                 <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
                                     <h4 style="font-weight:700; font-size:13.5px; line-height:1.3; margin:0; color:var(--ink);">${coord.name}</h4>
                                     ${hasCoords ? '<i class="fa-solid fa-arrow-up-right-from-square" style="color:#CBD5E1; font-size:10px; margin-top:2px;"></i>' : ''}
                                 </div>
                                 ${coord.desc ? `<p style="font-size:12px; color:var(--ink-soft); margin:4px 0 0;">${coord.desc}</p>` : ''}
                             </div>
+                            <div class="visit-check ${isDone ? 'checked' : ''}" onclick="event.stopPropagation(); toggleVisited('${day.id}', ${i})"><i class="fa-solid fa-check"></i></div>
                         </div>`;
 
                     if (coord.transport) {
-                        let searchDest = searchOrig; // Backup caso não haja destino
-                        if (i < day.coords.length - 1) { 
-                            // CORREÇÃO: Enviar os nomes reais de Origem e Destino para o modo Navegação
-                            searchDest = encodeURIComponent(day.coords[i+1].name + ' ' + day.location); 
+                        let searchDest = searchOrig;
+                        if (i < day.coords.length - 1) {
+                            searchDest = encodeURIComponent(day.coords[i+1].name + ' ' + day.location);
                         }
-                        
+
                         stepsHtml += `
                             <div class="transit-pill shadow-sm" onclick="window.open('https://www.google.com/maps/dir/?api=1&origin=${searchOrig}&destination=${searchDest}', '_blank')" title="Navegar no Google Maps">
                                 <i class="fa-solid ${coord.transport.icon}"></i>
@@ -365,9 +556,14 @@
                 panel.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                         <span class="location-tag"><i class="fa-solid fa-location-dot"></i> ${day.location}</span>
+                        <span class="weather-chip" id="weather-${day.id}" style="display:none; color:var(--ink-soft); background: var(--line);"><i class="fa-solid fa-cloud"></i> --</span>
                         <button onclick="fetchDadosDoRoteiro()" class="sync-btn"><i class="fa-solid fa-rotate"></i> Sync</button>
                     </div>
-                    <h2 class="display" style="font-size:22px; font-weight:600; line-height:1.2; margin:0 0 14px;">${day.title}</h2>
+                    <h2 class="display" style="font-size:22px; font-weight:600; line-height:1.2; margin:0 0 10px; color:var(--ink);">${day.title}</h2>
+                    <div class="day-progress-wrap">
+                        <div class="day-progress-track"><div class="day-progress-fill" id="progress-${day.id}" style="width:${comp.pct}%;"></div></div>
+                        <span class="day-progress-label" id="progress-label-${day.id}">${comp.done}/${comp.total} visitados</span>
+                    </div>
                     <div class="hotel-card">
                         <i class="fa-solid fa-bed" style="color:var(--gold); font-size:16px;"></i>
                         <div><div style="font-size:9px; text-transform:uppercase; letter-spacing:0.06em; font-weight:700; color:var(--gold);">Alojamento</div><div style="font-size:13px; font-weight:600;">${day.hotel}</div></div>
@@ -378,16 +574,186 @@
             if (itinerario.length > 0) selectDay(0);
         }
 
+        function toggleVisited(dayId, idx) {
+            const key = dayId + '_' + idx;
+            visitedMap[key] = !visitedMap[key];
+            saveJSON(STORAGE_VISITED_KEY, visitedMap);
+
+            const row = document.getElementById(`row-${key}`);
+            if (row) row.classList.toggle('done', !!visitedMap[key]);
+            const check = row ? row.querySelector('.visit-check') : null;
+            if (check) check.classList.toggle('checked', !!visitedMap[key]);
+
+            const day = globalItinerary.find(d => d.id === dayId);
+            if (!day) return;
+            const comp = dayCompletion(day);
+            const fill = document.getElementById(`progress-${dayId}`);
+            const label = document.getElementById(`progress-label-${dayId}`);
+            if (fill) fill.style.width = comp.pct + '%';
+            if (label) label.textContent = `${comp.done}/${comp.total} visitados`;
+            const navItem = document.getElementById(`nav-${dayId}`);
+            if (navItem) navItem.classList.toggle('done', comp.total > 0 && comp.done === comp.total);
+        }
+
         function selectDay(index) {
             const day = globalItinerary[index];
             document.getElementById('header-location').innerHTML = `<i class="fa-solid fa-bed"></i> ${day.hotel.split('(')[0].trim()}`;
-            document.getElementById('quick-day-badge').innerText = `Dia ${day.dayNum}`;
+            document.getElementById('ring-num').textContent = day.dayNum;
+            document.getElementById('ring-tot').textContent = 'de ' + globalItinerary.length;
+            const pct = globalItinerary.length > 1 ? Math.round(((index + 1) / globalItinerary.length) * 100) : 100;
+            document.getElementById('day-ring').style.setProperty('--pct', pct);
+
             document.querySelectorAll('.tab-content').forEach(p => p.classList.remove('active'));
             document.getElementById(`panel-${day.id}`).classList.add('active');
             document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
             const activeNav = document.getElementById(`nav-${day.id}`); activeNav.classList.add('active');
             activeNav.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
             renderRouteOnMap(day); document.getElementById('content-container').scrollTop = 0;
+            loadWeatherForDay(day);
+        }
+
+        async function loadWeatherForDay(day) {
+            const chip = document.getElementById(`weather-${day.id}`);
+            if (!chip) return;
+            const coord = day.coords.find(c => !isNaN(c.lat) && !isNaN(c.lng));
+            if (!coord) { chip.style.display = 'none'; return; }
+            try {
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${coord.lat}&longitude=${coord.lng}&current=temperature_2m,weather_code&timezone=auto`;
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('no weather');
+                const data = await res.json();
+                if (!data.current) throw new Error('no current');
+                const temp = Math.round(data.current.temperature_2m);
+                const icon = weatherIcon(data.current.weather_code);
+                chip.innerHTML = `<i class="fa-solid ${icon}"></i> ${temp}°C agora`;
+                chip.style.display = 'inline-flex';
+                chip.style.color = '#fff'; chip.style.background = 'var(--jade)';
+            } catch (e) {
+                chip.style.display = 'none';
+            }
+        }
+
+        function weatherIcon(code) {
+            if (code === 0) return 'fa-sun';
+            if (code <= 3) return 'fa-cloud-sun';
+            if (code >= 51 && code <= 67) return 'fa-cloud-rain';
+            if (code >= 80 && code <= 82) return 'fa-cloud-showers-heavy';
+            if (code >= 95) return 'fa-bolt';
+            return 'fa-cloud';
+        }
+
+        /* ---------- Tools sheet ---------- */
+        function openSheet() {
+            document.getElementById('sheet-overlay').classList.add('open');
+            document.getElementById('tools-sheet').classList.add('open');
+        }
+        function closeSheet() {
+            document.getElementById('sheet-overlay').classList.remove('open');
+            document.getElementById('tools-sheet').classList.remove('open');
+        }
+        function switchPane(tabEl) {
+            document.querySelectorAll('.sheet-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.sheet-pane').forEach(p => p.classList.remove('active'));
+            tabEl.classList.add('active');
+            document.getElementById(tabEl.dataset.pane).classList.add('active');
+        }
+
+        function initTools() {
+            let packing = loadJSON(STORAGE_PACKING_KEY, null);
+            if (!packing) { packing = DEFAULT_PACKING.map(t => ({ text: t, checked: false })); saveJSON(STORAGE_PACKING_KEY, packing); }
+            renderPacking(packing);
+
+            renderBudget(loadJSON(STORAGE_BUDGET_KEY, []));
+
+            document.getElementById('packing-input').addEventListener('keydown', e => { if (e.key === 'Enter') addPackingItem(); });
+            document.getElementById('budget-desc').addEventListener('keydown', e => { if (e.key === 'Enter') addExpense(); });
+        }
+
+        function renderPacking(list) {
+            const wrap = document.getElementById('packing-list');
+            wrap.innerHTML = list.map((item, i) => `
+                <div class="tool-row ${item.checked ? 'checked' : ''}">
+                    <div class="tool-check ${item.checked ? 'checked' : ''}" onclick="togglePacking(${i})"><i class="fa-solid fa-check"></i></div>
+                    <div class="tool-text">${item.text}</div>
+                    <button class="tool-del" onclick="deletePacking(${i})"><i class="fa-solid fa-xmark"></i></button>
+                </div>`).join('') || '<p style="font-size:12px;color:var(--ink-soft);">Sem itens ainda.</p>';
+        }
+        function togglePacking(i) {
+            const list = loadJSON(STORAGE_PACKING_KEY, []);
+            list[i].checked = !list[i].checked;
+            saveJSON(STORAGE_PACKING_KEY, list);
+            renderPacking(list);
+        }
+        function deletePacking(i) {
+            const list = loadJSON(STORAGE_PACKING_KEY, []);
+            list.splice(i, 1);
+            saveJSON(STORAGE_PACKING_KEY, list);
+            renderPacking(list);
+        }
+        function addPackingItem() {
+            const input = document.getElementById('packing-input');
+            const val = input.value.trim();
+            if (!val) return;
+            const list = loadJSON(STORAGE_PACKING_KEY, []);
+            list.push({ text: val, checked: false });
+            saveJSON(STORAGE_PACKING_KEY, list);
+            renderPacking(list);
+            input.value = '';
+        }
+
+        function renderBudget(list) {
+            const wrap = document.getElementById('budget-list');
+            const total = list.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+            document.getElementById('budget-total-amount').textContent = '€' + total.toFixed(2);
+            wrap.innerHTML = list.map((e, i) => `
+                <div class="tool-row">
+                    <div class="tool-text">${e.desc}</div>
+                    <div style="font-weight:700; font-size:13px; color:var(--jade);">€${parseFloat(e.amount).toFixed(2)}</div>
+                    <button class="tool-del" onclick="deleteExpense(${i})"><i class="fa-solid fa-xmark"></i></button>
+                </div>`).join('') || '<p style="font-size:12px;color:var(--ink-soft);">Ainda sem gastos registados.</p>';
+        }
+        function addExpense() {
+            const descInput = document.getElementById('budget-desc');
+            const amountInput = document.getElementById('budget-amount');
+            const desc = descInput.value.trim();
+            const amount = parseFloat(amountInput.value);
+            if (!desc || isNaN(amount)) return;
+            const list = loadJSON(STORAGE_BUDGET_KEY, []);
+            list.push({ desc, amount });
+            saveJSON(STORAGE_BUDGET_KEY, list);
+            renderBudget(list);
+            descInput.value = ''; amountInput.value = '';
+        }
+        function deleteExpense(i) {
+            const list = loadJSON(STORAGE_BUDGET_KEY, []);
+            list.splice(i, 1);
+            saveJSON(STORAGE_BUDGET_KEY, list);
+            renderBudget(list);
+        }
+
+        async function initCurrency() {
+            const note = document.getElementById('conv-rate-note');
+            try {
+                const res = await fetch('https://api.frankfurter.app/latest?from=EUR&to=THB');
+                const data = await res.json();
+                eurToThb = data.rates.THB;
+                note.textContent = `1 EUR ≈ ${eurToThb.toFixed(2)} THB (taxa de hoje)`;
+            } catch (e) {
+                eurToThb = 39; // fallback aproximado
+                note.textContent = `1 EUR ≈ ${eurToThb} THB (taxa aproximada, sem ligação)`;
+            }
+        }
+        function convertFrom(source) {
+            if (!eurToThb) return;
+            const eurEl = document.getElementById('conv-eur');
+            const thbEl = document.getElementById('conv-thb');
+            if (source === 'eur') {
+                const v = parseFloat(eurEl.value);
+                thbEl.value = isNaN(v) ? '' : (v * eurToThb).toFixed(2);
+            } else {
+                const v = parseFloat(thbEl.value);
+                eurEl.value = isNaN(v) ? '' : (v / eurToThb).toFixed(2);
+            }
         }
 
         window.addEventListener('load', bootApp);

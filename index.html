@@ -178,7 +178,63 @@
         .conv-box input { width: 100%; border:none; background:transparent; font-size: 20px; font-weight:700; font-family:'Fraunces',serif; color: var(--ink); outline:none; }
         .conv-box .cur { font-size:11px; font-weight:800; color: var(--ink-soft); background: var(--surface); padding: 4px 10px; border-radius: 99px; border: 1px solid var(--line); }
         .conv-rate-note { font-size: 10.5px; color: var(--ink-soft); text-align:center; margin-top: 2px; }
-        .swap-btn { width:34px; height:34px; border-radius:50%; border:none; background: var(--jade); color:#fff; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+        .swap-btn { width:34px; height:34px; border-radius:50%; border:none; background: var(--jade); color:#fff; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; transition: transform 0.2s; }
+        .swap-btn:active { transform: rotate(180deg) scale(0.9); }
+
+        .pane-header { display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; }
+        .pane-header h3 { margin:0; font-size: 15px; font-weight:600; color: var(--ink); }
+        .refresh-row { display:flex; align-items:center; justify-content:center; gap: 7px; margin-top: 8px; }
+        .refresh-btn { background: var(--bg); border: 1px solid var(--line); color: var(--jade); width: 28px; height: 28px; border-radius: 50%; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size: 11px; flex-shrink:0; }
+        .refresh-btn.spinning i { animation: spin 0.7s linear infinite; }
+        .last-updated { font-size: 10.5px; color: var(--ink-soft); }
+
+        .cat-select { border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 10px; padding: 0 8px; font-size: 16px; font-family: inherit; height: 38px; flex: 0 0 44px; }
+        .cat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink:0; }
+        .budget-row-main { display:flex; flex-direction:column; flex:1; min-width:0; }
+        .budget-row-main .desc { font-size: 13px; color: var(--ink); }
+        .budget-row-main .cat-label { font-size: 10px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.03em; font-weight:700; }
+
+        .packing-progress { display:flex; align-items:center; gap:8px; margin-bottom: 14px; }
+        .packing-progress .day-progress-track { flex:1; height:6px; border-radius:99px; background: var(--line); overflow:hidden; }
+        .packing-progress .day-progress-fill { height:100%; background: linear-gradient(90deg, var(--jade), var(--gold)); border-radius:99px; transition: width 0.35s ease; }
+        .packing-progress .day-progress-label { font-size:10.5px; font-weight:700; color: var(--ink-soft); white-space:nowrap; }
+
+        .conv-box.updating { opacity: 0.6; }
+
+        /* Notes & photos per stop */
+        .note-btn { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:10px; color: var(--ink-soft); cursor:pointer; background: var(--surface); transition: all 0.15s; }
+        .note-btn.has-note { background: var(--gold); border-color: var(--gold); color: #fff; }
+        .note-preview { margin: -2px 0 10px 42px; display:flex; align-items:center; gap:8px; }
+        .note-preview img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; flex-shrink:0; }
+        .note-preview p { font-size: 11.5px; color: var(--ink-soft); margin:0; font-style: italic; }
+
+        .note-sheet-body { padding: 4px 18px 24px; }
+        .note-sheet-title { font-size: 15px; font-weight:600; color: var(--ink); margin: 0 0 12px; }
+        .note-textarea { width:100%; border:1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 12px; padding: 10px 12px; font-size: 13px; font-family: 'Inter', sans-serif; min-height: 80px; resize: vertical; }
+        .photo-drop { margin-top: 10px; border: 1.5px dashed var(--line); border-radius: 14px; padding: 16px; text-align:center; color: var(--ink-soft); font-size: 12px; cursor: pointer; position: relative; }
+        .photo-drop img { max-width: 100%; max-height: 160px; border-radius: 10px; display:block; margin: 0 auto; }
+        .note-actions { display:flex; gap:10px; margin-top: 14px; }
+        .note-actions button { flex:1; border:none; border-radius:12px; padding: 11px; font-weight:700; font-size: 13px; cursor:pointer; }
+        .note-save-btn { background: var(--jade); color:#fff; }
+        .note-remove-btn { background: var(--bg); color: var(--danger); border: 1px solid var(--line) !important; }
+
+        /* Emergency info tab */
+        .info-field { margin-bottom: 12px; }
+        .info-field label { display:block; font-size: 10.5px; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; color: var(--ink-soft); margin-bottom: 4px; }
+        .info-field input, .info-field textarea { width:100%; border:1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 10px; padding: 9px 10px; font-size: 13px; font-family: 'Inter', sans-serif; }
+        .info-field textarea { min-height: 60px; resize: vertical; }
+        .info-saved-note { font-size: 10.5px; color: var(--jade); text-align:center; margin-top: 4px; height: 14px; opacity:0; transition: opacity 0.3s; }
+        .info-saved-note.show { opacity: 1; }
+
+        /* User switcher */
+        .user-badge { width:34px; height:34px; border-radius:50%; border:none; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; color:#fff; cursor:pointer; flex-shrink:0; transition: transform 0.15s; }
+        .user-badge:active { transform: scale(0.9); }
+        .user-row { display:flex; align-items:center; gap:12px; padding: 13px 4px; border-bottom:1px solid var(--line); cursor:pointer; }
+        .user-row:last-child { border-bottom:none; }
+        .user-row .avatar { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; color:#fff; font-size:15px; flex-shrink:0; }
+        .user-row .name { font-size:14px; font-weight:700; color:var(--ink); flex:1; }
+        .user-row .check-mark { color: var(--jade); font-size:16px; opacity:0; }
+        .user-row.selected .check-mark { opacity:1; }
     </style>
 </head>
 <body>
@@ -191,6 +247,7 @@
                 <p class="header-sub" id="header-location"><i class="fa-solid fa-bed"></i> A carregar...</p>
             </div>
             <div class="header-right">
+                <button class="user-badge" id="user-badge" onclick="openUserSheet(false)" style="background:var(--jade);" title="Trocar utilizador">?</button>
                 <button class="icon-btn" id="theme-toggle" title="Alternar tema"><i class="fa-solid fa-moon"></i></button>
                 <div class="day-ring" id="day-ring" style="--pct:0;" onclick="openSheet()">
                     <div class="day-ring-inner">
@@ -215,46 +272,125 @@
         </nav>
 
         <!-- Tools bottom sheet -->
-        <div class="sheet-overlay" id="sheet-overlay" onclick="closeSheet()"></div>
+        <div class="sheet-overlay" id="sheet-overlay" onclick="closeAnySheet()"></div>
         <div class="sheet" id="tools-sheet">
             <div class="sheet-handle"></div>
             <div class="sheet-tabs">
                 <div class="sheet-tab active" data-pane="pane-packing" onclick="switchPane(this)"><i class="fa-solid fa-suitcase"></i> Mala</div>
                 <div class="sheet-tab" data-pane="pane-budget" onclick="switchPane(this)"><i class="fa-solid fa-wallet"></i> Gastos</div>
                 <div class="sheet-tab" data-pane="pane-currency" onclick="switchPane(this)"><i class="fa-solid fa-coins"></i> Câmbio</div>
+                <div class="sheet-tab" data-pane="pane-info" onclick="switchPane(this)"><i class="fa-solid fa-triangle-exclamation"></i> Info</div>
             </div>
             <div class="sheet-body">
                 <div class="sheet-pane active" id="pane-packing">
+                    <div class="pane-header">
+                        <h3><i class="fa-solid fa-suitcase" style="color:var(--gold); margin-right:6px;"></i>A minha mala</h3>
+                    </div>
+                    <div class="packing-progress">
+                        <div class="day-progress-track"><div class="day-progress-fill" id="packing-progress-fill" style="width:0%;"></div></div>
+                        <span class="day-progress-label" id="packing-progress-label">0/0 prontos</span>
+                    </div>
                     <div id="packing-list"></div>
                     <div class="add-row">
                         <input type="text" id="packing-input" placeholder="Adicionar item...">
-                        <button onclick="addPackingItem()">Adicionar</button>
+                        <button onclick="addPackingItem()"><i class="fa-solid fa-plus"></i></button>
                     </div>
                 </div>
                 <div class="sheet-pane" id="pane-budget">
+                    <div class="pane-header">
+                        <h3><i class="fa-solid fa-wallet" style="color:var(--gold); margin-right:6px;"></i>Gastos da viagem</h3>
+                    </div>
                     <div class="budget-total">
                         <span class="label">Total gasto</span>
                         <span class="amount" id="budget-total-amount">€0</span>
                     </div>
                     <div id="budget-list"></div>
                     <div class="add-row">
+                        <select id="budget-cat" class="cat-select">
+                            <option value="Comida">🍜</option>
+                            <option value="Transporte">🚕</option>
+                            <option value="Compras">🛍️</option>
+                            <option value="Alojamento">🏨</option>
+                            <option value="Outro">✨</option>
+                        </select>
                         <input type="text" id="budget-desc" placeholder="Descrição" style="flex:1.4;">
                         <input type="number" id="budget-amount" placeholder="€" style="flex:0.7;">
-                        <button onclick="addExpense()">+</button>
+                        <button onclick="addExpense()"><i class="fa-solid fa-plus"></i></button>
                     </div>
                 </div>
                 <div class="sheet-pane" id="pane-currency">
-                    <div class="conv-box">
+                    <div class="pane-header">
+                        <h3><i class="fa-solid fa-coins" style="color:var(--gold); margin-right:6px;"></i>Câmbio EUR ↔ THB</h3>
+                    </div>
+                    <div class="conv-box" id="conv-box-eur">
                         <span class="cur">EUR</span>
                         <input type="number" id="conv-eur" placeholder="0" oninput="convertFrom('eur')">
                     </div>
-                    <div style="display:flex; justify-content:center; margin: -4px 0;"><div class="swap-btn"><i class="fa-solid fa-arrow-down"></i></div></div>
-                    <div class="conv-box">
+                    <div style="display:flex; justify-content:center; margin: -4px 0;">
+                        <button class="swap-btn" onclick="swapCurrencyFocus()" title="Trocar sentido"><i class="fa-solid fa-arrow-down"></i></button>
+                    </div>
+                    <div class="conv-box" id="conv-box-thb">
                         <span class="cur">THB</span>
                         <input type="number" id="conv-thb" placeholder="0" oninput="convertFrom('thb')">
                     </div>
-                    <p class="conv-rate-note" id="conv-rate-note">A obter taxa de câmbio...</p>
+                    <div class="refresh-row">
+                        <button class="refresh-btn" id="rate-refresh-btn" onclick="fetchExchangeRate(true)"><i class="fa-solid fa-rotate"></i></button>
+                        <p class="conv-rate-note last-updated" id="conv-rate-note" style="margin:0;">A obter taxa de câmbio...</p>
+                    </div>
                 </div>
+                <div class="sheet-pane" id="pane-info">
+                    <div class="pane-header">
+                        <h3><i class="fa-solid fa-kit-medical" style="color:var(--gold); margin-right:6px;"></i>Em caso de emergência</h3>
+                    </div>
+                    <div class="info-field">
+                        <label>Contacto de emergência (nome + telefone)</label>
+                        <input type="text" id="info-contact" placeholder="Ex: Maria - +351 912 345 678">
+                    </div>
+                    <div class="info-field">
+                        <label>Embaixada / Consulado</label>
+                        <input type="text" id="info-embassy" placeholder="Ex: Embaixada de Portugal em Banguecoque, +66...">
+                    </div>
+                    <div class="info-field">
+                        <label>Seguro de viagem — nº apólice e telefone</label>
+                        <input type="text" id="info-insurance" placeholder="Ex: Apólice 123456, +351 21 000 0000">
+                    </div>
+                    <div class="info-field">
+                        <label>Tipo sanguíneo</label>
+                        <input type="text" id="info-blood" placeholder="Ex: O+">
+                    </div>
+                    <div class="info-field">
+                        <label>Alergias / condições médicas</label>
+                        <textarea id="info-allergies" placeholder="Ex: Alergia a amendoim, asma..."></textarea>
+                    </div>
+                    <p class="info-saved-note" id="info-saved-note">Guardado</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Note / photo sheet for a single stop -->
+        <div class="sheet" id="note-sheet" style="z-index:96;">
+            <div class="sheet-handle"></div>
+            <div class="note-sheet-body">
+                <h3 class="note-sheet-title" id="note-sheet-title">A minha nota</h3>
+                <textarea class="note-textarea" id="note-text" placeholder="Escreve uma memória, dica ou lembrete sobre este sítio..."></textarea>
+                <div class="photo-drop" id="photo-drop" onclick="document.getElementById('note-photo-input').click()">
+                    <span id="photo-drop-label"><i class="fa-solid fa-camera"></i> Toca para adicionar uma foto</span>
+                </div>
+                <input type="file" id="note-photo-input" accept="image/*" style="display:none;" onchange="onNotePhotoSelected(event)">
+                <div class="note-actions">
+                    <button class="note-remove-btn" onclick="deleteNote()"><i class="fa-solid fa-trash"></i> Remover</button>
+                    <button class="note-save-btn" onclick="saveNote()"><i class="fa-solid fa-check"></i> Guardar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- User picker sheet -->
+        <div class="sheet" id="user-sheet" style="z-index:97;">
+            <div class="sheet-handle"></div>
+            <div class="note-sheet-body">
+                <h3 class="note-sheet-title">Quem está a usar a app?</h3>
+                <p style="font-size:12px; color:var(--ink-soft); margin:-6px 0 14px;">Cada pessoa guarda a sua própria mala, gastos, notas e progresso neste equipamento.</p>
+                <div id="user-rows"></div>
             </div>
         </div>
     </div>
@@ -269,6 +405,18 @@
         const STORAGE_PACKING_KEY = 'tailandia_mala';
         const STORAGE_BUDGET_KEY = 'tailandia_gastos';
         const STORAGE_THEME_KEY = 'tailandia_tema';
+        const STORAGE_NOTES_KEY = 'tailandia_notas';
+        const STORAGE_INFO_KEY = 'tailandia_info_emergencia';
+        const STORAGE_USER_KEY = 'tailandia_utilizador_atual';
+
+        const USERS = ['Ana', 'Raquel'];
+        const USER_COLORS = { Ana: '#C9A227', Raquel: '#3B82C4' };
+        // Each user can eventually point to their own Google Sheet. For now both use the same one.
+        const USER_SHEETS = { Ana: GOOGLE_SHEET_CSV_URL, Raquel: GOOGLE_SHEET_CSV_URL };
+
+        let currentUser = null;
+        let userPickerForced = false;
+        function pKey(base) { return base + '__' + currentUser; }
 
         const DEFAULT_PACKING = [
             "Passaporte + visto (se aplicável)", "Seguro de viagem", "Adaptador de tomada (Tipo A/C/O)",
@@ -290,21 +438,82 @@
         async function bootApp() {
             initTheme();
             initMap();
-            visitedMap = loadJSON(STORAGE_VISITED_KEY, {});
-            const dadosOffline = localStorage.getItem(STORAGE_DATA_KEY);
+            initCurrency();
+            renderUserRows();
+
+            const saved = localStorage.getItem(STORAGE_USER_KEY);
+            if (saved && USERS.includes(saved)) {
+                currentUser = saved;
+                updateUserBadge();
+                await startAppForUser();
+            } else {
+                openUserSheet(true);
+            }
+        }
+
+        async function startAppForUser() {
+            visitedMap = loadJSON(pKey(STORAGE_VISITED_KEY), {});
+            const dadosOffline = localStorage.getItem(pKey(STORAGE_DATA_KEY));
             if (dadosOffline && dadosOffline !== "[]") {
                 globalItinerary = JSON.parse(dadosOffline);
                 renderUI(globalItinerary);
+            } else {
+                mostrarEstadoCarregamento();
             }
             initTools();
-            initCurrency();
+            initInfo();
             await fetchDadosDoRoteiro();
+        }
+
+        function mostrarEstadoCarregamento() {
+            document.getElementById('bottom-nav').innerHTML = '';
+            document.getElementById('content-container').innerHTML = `
+                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; padding:40px 24px; text-align:center; color:var(--ink-soft);">
+                    <i class="fa-solid fa-compass" style="font-size:38px; margin-bottom:14px; color:var(--jade); animation: spin 1.6s linear infinite;"></i>
+                    <p style="font-weight:700; font-size:14px;">A carregar o teu roteiro...</p>
+                </div>`;
+        }
+
+        /* ---------- User switching ---------- */
+        function renderUserRows() {
+            const wrap = document.getElementById('user-rows');
+            if (!wrap) return;
+            wrap.innerHTML = USERS.map(u => `
+                <div class="user-row ${currentUser === u ? 'selected' : ''}" onclick="selectUser('${u}')">
+                    <div class="avatar" style="background:${USER_COLORS[u]};">${u[0]}</div>
+                    <span class="name">${u}</span>
+                    <i class="fa-solid fa-check check-mark"></i>
+                </div>`).join('');
+        }
+        function openUserSheet(forced) {
+            userPickerForced = !!forced;
+            renderUserRows();
+            document.getElementById('sheet-overlay').classList.add('open');
+            document.getElementById('user-sheet').classList.add('open');
+        }
+        function closeUserSheet() {
+            document.getElementById('user-sheet').classList.remove('open');
+            document.getElementById('sheet-overlay').classList.remove('open');
+        }
+        async function selectUser(name) {
+            currentUser = name;
+            localStorage.setItem(STORAGE_USER_KEY, name);
+            updateUserBadge();
+            userPickerForced = false;
+            closeUserSheet();
+            await startAppForUser();
+        }
+        function updateUserBadge() {
+            const badge = document.getElementById('user-badge');
+            if (!badge || !currentUser) return;
+            badge.textContent = currentUser[0];
+            badge.style.background = USER_COLORS[currentUser] || 'var(--jade)';
+            badge.title = currentUser;
         }
 
         function initTheme() {
             const saved = localStorage.getItem(STORAGE_THEME_KEY);
-            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const theme = saved || (prefersDark ? 'dark' : 'light');
+            const theme = saved || 'light';
             applyTheme(theme);
             document.getElementById('theme-toggle').onclick = () => {
                 const cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
@@ -319,11 +528,13 @@
         }
 
         async function fetchDadosDoRoteiro() {
+            if (!currentUser) return;
             const btns = document.querySelectorAll('.sync-btn');
             btns.forEach(b => b.classList.add('syncing'));
             document.getElementById('header-location').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> A sincronizar Excel...';
 
-            const urlDireta = GOOGLE_SHEET_CSV_URL + "&_t=" + new Date().getTime();
+            const sheetUrl = USER_SHEETS[currentUser] || GOOGLE_SHEET_CSV_URL;
+            const urlDireta = sheetUrl + "&_t=" + new Date().getTime();
 
             try {
                 const res = await fetch(urlDireta);
@@ -335,16 +546,16 @@
                     complete: function(results) {
                         globalItinerary = transformarCSVemItinerario(results.data);
                         if (globalItinerary.length === 0) throw new Error("Excel Vazio");
-                        localStorage.setItem(STORAGE_DATA_KEY, JSON.stringify(globalItinerary));
+                        localStorage.setItem(pKey(STORAGE_DATA_KEY), JSON.stringify(globalItinerary));
                         const horaAtual = new Date().toLocaleString('pt-PT');
-                        localStorage.setItem(STORAGE_SYNC_TIME_KEY, horaAtual);
+                        localStorage.setItem(pKey(STORAGE_SYNC_TIME_KEY), horaAtual);
                         mostrarBannerSucesso(horaAtual);
                         renderUI(globalItinerary);
                     }
                 });
             } catch (error) {
                 console.error("Erro final:", error);
-                const dadosOffline = localStorage.getItem(STORAGE_DATA_KEY);
+                const dadosOffline = localStorage.getItem(pKey(STORAGE_DATA_KEY));
                 if (dadosOffline && dadosOffline !== "[]") {
                     globalItinerary = JSON.parse(dadosOffline);
                     renderUI(globalItinerary);
@@ -523,9 +734,11 @@
                     const searchOrig = encodeURIComponent(coord.name + ' ' + day.location);
                     const visitKey = day.id + '_' + i;
                     const isDone = !!visitedMap[visitKey];
+                    const notes = loadJSON(pKey(STORAGE_NOTES_KEY), {});
+                    const noteData = notes[visitKey];
 
                     stepsHtml += `
-                        <div class="step-row ${isDone ? 'done' : ''}" id="row-${visitKey}" style="display:flex; align-items:flex-start; gap:12px; margin-bottom:8px;">
+                        <div class="step-row ${isDone ? 'done' : ''}" id="row-${visitKey}" style="display:flex; align-items:flex-start; gap:10px; margin-bottom:8px;">
                             <div class="step-dot">${i + 1}</div>
                             <div class="step-card" style="flex:1;" ${hasCoords ? `onclick="window.open('https://www.google.com/maps/search/?api=1&query=${searchOrig}', '_blank')"` : ''}>
                                 <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
@@ -534,8 +747,12 @@
                                 </div>
                                 ${coord.desc ? `<p style="font-size:12px; color:var(--ink-soft); margin:4px 0 0;">${coord.desc}</p>` : ''}
                             </div>
-                            <div class="visit-check ${isDone ? 'checked' : ''}" onclick="event.stopPropagation(); toggleVisited('${day.id}', ${i})"><i class="fa-solid fa-check"></i></div>
-                        </div>`;
+                            <div style="display:flex; flex-direction:column; gap:6px; flex-shrink:0;">
+                                <div class="note-btn ${noteData ? 'has-note' : ''}" onclick="event.stopPropagation(); openNoteSheet('${day.id}', ${i}, '${coord.name.replace(/'/g, "\\'")}')" title="Nota / foto"><i class="fa-solid fa-note-sticky"></i></div>
+                                <div class="visit-check ${isDone ? 'checked' : ''}" onclick="event.stopPropagation(); toggleVisited('${day.id}', ${i})"><i class="fa-solid fa-check"></i></div>
+                            </div>
+                        </div>
+                        ${noteData ? `<div class="note-preview">${noteData.photo ? `<img src="${noteData.photo}">` : ''}${noteData.text ? `<p>${noteData.text}</p>` : ''}</div>` : ''}`;
 
                     if (coord.transport) {
                         let searchDest = searchOrig;
@@ -577,7 +794,7 @@
         function toggleVisited(dayId, idx) {
             const key = dayId + '_' + idx;
             visitedMap[key] = !visitedMap[key];
-            saveJSON(STORAGE_VISITED_KEY, visitedMap);
+            saveJSON(pKey(STORAGE_VISITED_KEY), visitedMap);
 
             const row = document.getElementById(`row-${key}`);
             if (row) row.classList.toggle('done', !!visitedMap[key]);
@@ -612,11 +829,19 @@
             loadWeatherForDay(day);
         }
 
+        const STORAGE_WEATHER_KEY = 'tailandia_tempo_cache';
+
         async function loadWeatherForDay(day) {
             const chip = document.getElementById(`weather-${day.id}`);
             if (!chip) return;
             const coord = day.coords.find(c => !isNaN(c.lat) && !isNaN(c.lng));
             if (!coord) { chip.style.display = 'none'; return; }
+
+            chip.style.display = 'inline-flex';
+            chip.style.cursor = 'pointer';
+            chip.onclick = () => loadWeatherForDay(day);
+            chip.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> a atualizar...`;
+
             try {
                 const url = `https://api.open-meteo.com/v1/forecast?latitude=${coord.lat}&longitude=${coord.lng}&current=temperature_2m,weather_code&timezone=auto`;
                 const res = await fetch(url);
@@ -626,10 +851,21 @@
                 const temp = Math.round(data.current.temperature_2m);
                 const icon = weatherIcon(data.current.weather_code);
                 chip.innerHTML = `<i class="fa-solid ${icon}"></i> ${temp}°C agora`;
-                chip.style.display = 'inline-flex';
                 chip.style.color = '#fff'; chip.style.background = 'var(--jade)';
+                const weatherCache = loadJSON(STORAGE_WEATHER_KEY, {});
+                weatherCache[day.id] = { temp, icon, time: Date.now() };
+                saveJSON(STORAGE_WEATHER_KEY, weatherCache);
             } catch (e) {
-                chip.style.display = 'none';
+                const weatherCache = loadJSON(STORAGE_WEATHER_KEY, {});
+                const cached = weatherCache[day.id];
+                if (cached) {
+                    const mins = Math.round((Date.now() - cached.time) / 60000);
+                    const whenText = mins < 60 ? `há ${mins} min` : 'há mais de 1h';
+                    chip.innerHTML = `<i class="fa-solid ${cached.icon}"></i> ${cached.temp}°C (${whenText})`;
+                    chip.style.color = 'var(--ink-soft)'; chip.style.background = 'var(--line)';
+                } else {
+                    chip.style.display = 'none';
+                }
             }
         }
 
@@ -642,10 +878,144 @@
             return 'fa-cloud';
         }
 
-        /* ---------- Tools sheet ---------- */
+        /* ---------- Notes & photos per stop ---------- */
+        let currentNoteKey = null;
+
+        function openNoteSheet(dayId, idx, stopName) {
+            currentNoteKey = dayId + '_' + idx;
+            const notes = loadJSON(pKey(STORAGE_NOTES_KEY), {});
+            const existing = notes[currentNoteKey] || {};
+            document.getElementById('note-sheet-title').textContent = stopName || 'A minha nota';
+            document.getElementById('note-text').value = existing.text || '';
+            const drop = document.getElementById('photo-drop');
+            if (existing.photo) {
+                drop.innerHTML = `<img src="${existing.photo}">`;
+            } else {
+                drop.innerHTML = `<span id="photo-drop-label"><i class="fa-solid fa-camera"></i> Toca para adicionar uma foto</span>`;
+            }
+            document.getElementById('sheet-overlay').classList.add('open');
+            document.getElementById('note-sheet').classList.add('open');
+        }
+        function closeNoteSheet() {
+            document.getElementById('note-sheet').classList.remove('open');
+            document.getElementById('sheet-overlay').classList.remove('open');
+            currentNoteKey = null;
+        }
+        function closeAnySheet() {
+            if (document.getElementById('note-sheet').classList.contains('open')) { closeNoteSheet(); return; }
+            if (document.getElementById('user-sheet').classList.contains('open')) { if (!userPickerForced) closeUserSheet(); return; }
+            closeSheet();
+        }
+
+        function compressImage(file, maxW, quality) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const scale = Math.min(1, maxW / img.width);
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width * scale;
+                        canvas.height = img.height * scale;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function onNotePhotoSelected(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const drop = document.getElementById('photo-drop');
+            drop.innerHTML = `<span><i class="fa-solid fa-spinner fa-spin"></i> a preparar foto...</span>`;
+            try {
+                const dataUrl = await compressImage(file, 800, 0.7);
+                drop.innerHTML = `<img src="${dataUrl}">`;
+            } catch (e) {
+                drop.innerHTML = `<span><i class="fa-solid fa-triangle-exclamation"></i> não foi possível carregar a foto</span>`;
+            }
+        }
+
+        function saveNote() {
+            if (!currentNoteKey) return;
+            const notes = loadJSON(pKey(STORAGE_NOTES_KEY), {});
+            const text = document.getElementById('note-text').value.trim();
+            const img = document.querySelector('#photo-drop img');
+            const photo = img ? img.src : null;
+            if (!text && !photo) { delete notes[currentNoteKey]; }
+            else { notes[currentNoteKey] = { text, photo }; }
+            try {
+                saveJSON(pKey(STORAGE_NOTES_KEY), notes);
+            } catch (e) {
+                alert('Não foi possível guardar — a foto pode ser demasiado grande. Tenta uma foto mais pequena ou só texto.');
+                return;
+            }
+            refreshNotePreview(currentNoteKey);
+            closeNoteSheet();
+        }
+        function deleteNote() {
+            if (!currentNoteKey) return;
+            const notes = loadJSON(pKey(STORAGE_NOTES_KEY), {});
+            delete notes[currentNoteKey];
+            saveJSON(pKey(STORAGE_NOTES_KEY), notes);
+            refreshNotePreview(currentNoteKey);
+            closeNoteSheet();
+        }
+        function refreshNotePreview(key) {
+            const row = document.getElementById(`row-${key}`);
+            if (!row) return;
+            const notes = loadJSON(pKey(STORAGE_NOTES_KEY), {});
+            const noteData = notes[key];
+            const btn = row.querySelector('.note-btn');
+            if (btn) btn.classList.toggle('has-note', !!noteData);
+            const existingPreview = row.nextElementSibling;
+            if (existingPreview && existingPreview.classList.contains('note-preview')) existingPreview.remove();
+            if (noteData) {
+                const div = document.createElement('div');
+                div.className = 'note-preview';
+                div.innerHTML = `${noteData.photo ? `<img src="${noteData.photo}">` : ''}${noteData.text ? `<p>${noteData.text}</p>` : ''}`;
+                row.insertAdjacentElement('afterend', div);
+            }
+        }
+
+        /* ---------- Emergency info ---------- */
+        const INFO_FIELDS = ['contact', 'embassy', 'insurance', 'blood', 'allergies'];
+        function initInfo() {
+            const data = loadJSON(pKey(STORAGE_INFO_KEY), {});
+            INFO_FIELDS.forEach(f => {
+                const el = document.getElementById('info-' + f);
+                if (!el) return;
+                el.value = data[f] || '';
+                el.oninput = debounceSaveInfo;
+            });
+        }
+        let infoSaveTimeout = null;
+        function debounceSaveInfo() {
+            clearTimeout(infoSaveTimeout);
+            infoSaveTimeout = setTimeout(saveInfo, 500);
+        }
+        function saveInfo() {
+            const data = {};
+            INFO_FIELDS.forEach(f => {
+                const el = document.getElementById('info-' + f);
+                if (el) data[f] = el.value;
+            });
+            saveJSON(pKey(STORAGE_INFO_KEY), data);
+            const note = document.getElementById('info-saved-note');
+            note.classList.add('show');
+            setTimeout(() => note.classList.remove('show'), 1200);
+        }
         function openSheet() {
             document.getElementById('sheet-overlay').classList.add('open');
             document.getElementById('tools-sheet').classList.add('open');
+            const activePane = document.querySelector('.sheet-tab.active');
+            if (activePane && activePane.dataset.pane === 'pane-currency') fetchExchangeRate(false);
         }
         function closeSheet() {
             document.getElementById('sheet-overlay').classList.remove('open');
@@ -656,17 +1026,18 @@
             document.querySelectorAll('.sheet-pane').forEach(p => p.classList.remove('active'));
             tabEl.classList.add('active');
             document.getElementById(tabEl.dataset.pane).classList.add('active');
+            if (tabEl.dataset.pane === 'pane-currency') fetchExchangeRate(false);
         }
 
         function initTools() {
-            let packing = loadJSON(STORAGE_PACKING_KEY, null);
-            if (!packing) { packing = DEFAULT_PACKING.map(t => ({ text: t, checked: false })); saveJSON(STORAGE_PACKING_KEY, packing); }
+            let packing = loadJSON(pKey(STORAGE_PACKING_KEY), null);
+            if (!packing) { packing = DEFAULT_PACKING.map(t => ({ text: t, checked: false })); saveJSON(pKey(STORAGE_PACKING_KEY), packing); }
             renderPacking(packing);
 
-            renderBudget(loadJSON(STORAGE_BUDGET_KEY, []));
+            renderBudget(loadJSON(pKey(STORAGE_BUDGET_KEY), []));
 
-            document.getElementById('packing-input').addEventListener('keydown', e => { if (e.key === 'Enter') addPackingItem(); });
-            document.getElementById('budget-desc').addEventListener('keydown', e => { if (e.key === 'Enter') addExpense(); });
+            document.getElementById('packing-input').onkeydown = e => { if (e.key === 'Enter') addPackingItem(); };
+            document.getElementById('budget-desc').onkeydown = e => { if (e.key === 'Enter') addExpense(); };
         }
 
         function renderPacking(list) {
@@ -677,71 +1048,126 @@
                     <div class="tool-text">${item.text}</div>
                     <button class="tool-del" onclick="deletePacking(${i})"><i class="fa-solid fa-xmark"></i></button>
                 </div>`).join('') || '<p style="font-size:12px;color:var(--ink-soft);">Sem itens ainda.</p>';
+
+            const total = list.length;
+            const done = list.filter(i => i.checked).length;
+            const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+            document.getElementById('packing-progress-fill').style.width = pct + '%';
+            document.getElementById('packing-progress-label').textContent = `${done}/${total} prontos`;
         }
         function togglePacking(i) {
-            const list = loadJSON(STORAGE_PACKING_KEY, []);
+            const list = loadJSON(pKey(STORAGE_PACKING_KEY), []);
             list[i].checked = !list[i].checked;
-            saveJSON(STORAGE_PACKING_KEY, list);
+            saveJSON(pKey(STORAGE_PACKING_KEY), list);
             renderPacking(list);
         }
         function deletePacking(i) {
-            const list = loadJSON(STORAGE_PACKING_KEY, []);
+            const list = loadJSON(pKey(STORAGE_PACKING_KEY), []);
             list.splice(i, 1);
-            saveJSON(STORAGE_PACKING_KEY, list);
+            saveJSON(pKey(STORAGE_PACKING_KEY), list);
             renderPacking(list);
         }
         function addPackingItem() {
             const input = document.getElementById('packing-input');
             const val = input.value.trim();
             if (!val) return;
-            const list = loadJSON(STORAGE_PACKING_KEY, []);
+            const list = loadJSON(pKey(STORAGE_PACKING_KEY), []);
             list.push({ text: val, checked: false });
-            saveJSON(STORAGE_PACKING_KEY, list);
+            saveJSON(pKey(STORAGE_PACKING_KEY), list);
             renderPacking(list);
             input.value = '';
         }
+
+        const CAT_ICONS = { Comida: '🍜', Transporte: '🚕', Compras: '🛍️', Alojamento: '🏨', Outro: '✨' };
+        const CAT_COLORS = { Comida: '#E0574C', Transporte: '#3B82C4', Compras: '#C9A227', Alojamento: '#0E7C66', Outro: '#8B6FB3' };
 
         function renderBudget(list) {
             const wrap = document.getElementById('budget-list');
             const total = list.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
             document.getElementById('budget-total-amount').textContent = '€' + total.toFixed(2);
-            wrap.innerHTML = list.map((e, i) => `
+            wrap.innerHTML = list.map((e, i) => {
+                const cat = e.cat || 'Outro';
+                return `
                 <div class="tool-row">
-                    <div class="tool-text">${e.desc}</div>
-                    <div style="font-weight:700; font-size:13px; color:var(--jade);">€${parseFloat(e.amount).toFixed(2)}</div>
+                    <span style="font-size:16px;">${CAT_ICONS[cat] || '✨'}</span>
+                    <div class="budget-row-main">
+                        <span class="desc">${e.desc}</span>
+                        <span class="cat-label" style="color:${CAT_COLORS[cat] || 'var(--ink-soft)'};">${cat}</span>
+                    </div>
+                    <div style="font-weight:700; font-size:13px; color:var(--jade); flex-shrink:0;">€${parseFloat(e.amount).toFixed(2)}</div>
                     <button class="tool-del" onclick="deleteExpense(${i})"><i class="fa-solid fa-xmark"></i></button>
-                </div>`).join('') || '<p style="font-size:12px;color:var(--ink-soft);">Ainda sem gastos registados.</p>';
+                </div>`;
+            }).join('') || '<p style="font-size:12px;color:var(--ink-soft);">Ainda sem gastos registados.</p>';
         }
         function addExpense() {
             const descInput = document.getElementById('budget-desc');
             const amountInput = document.getElementById('budget-amount');
+            const catInput = document.getElementById('budget-cat');
             const desc = descInput.value.trim();
             const amount = parseFloat(amountInput.value);
             if (!desc || isNaN(amount)) return;
-            const list = loadJSON(STORAGE_BUDGET_KEY, []);
-            list.push({ desc, amount });
-            saveJSON(STORAGE_BUDGET_KEY, list);
+            const list = loadJSON(pKey(STORAGE_BUDGET_KEY), []);
+            list.push({ desc, amount, cat: catInput.value });
+            saveJSON(pKey(STORAGE_BUDGET_KEY), list);
             renderBudget(list);
             descInput.value = ''; amountInput.value = '';
         }
         function deleteExpense(i) {
-            const list = loadJSON(STORAGE_BUDGET_KEY, []);
+            const list = loadJSON(pKey(STORAGE_BUDGET_KEY), []);
             list.splice(i, 1);
-            saveJSON(STORAGE_BUDGET_KEY, list);
+            saveJSON(pKey(STORAGE_BUDGET_KEY), list);
             renderBudget(list);
         }
 
-        async function initCurrency() {
-            const note = document.getElementById('conv-rate-note');
+        const STORAGE_RATE_KEY = 'tailandia_taxa_cambio';
+
+        function initCurrency() {
+            const cached = loadJSON(STORAGE_RATE_KEY, null);
+            if (cached) { eurToThb = cached.rate; updateRateNote(cached.rate, cached.time, true); }
+            fetchExchangeRate(false);
+        }
+
+        async function fetchExchangeRate(manual) {
+            const btn = document.getElementById('rate-refresh-btn');
+            if (btn) btn.classList.add('spinning');
             try {
                 const res = await fetch('https://api.frankfurter.app/latest?from=EUR&to=THB');
+                if (!res.ok) throw new Error('rate fetch failed');
                 const data = await res.json();
                 eurToThb = data.rates.THB;
-                note.textContent = `1 EUR ≈ ${eurToThb.toFixed(2)} THB (taxa de hoje)`;
+                const now = Date.now();
+                saveJSON(STORAGE_RATE_KEY, { rate: eurToThb, time: now });
+                updateRateNote(eurToThb, now, false);
+                convertFrom('eur');
             } catch (e) {
-                eurToThb = 39; // fallback aproximado
-                note.textContent = `1 EUR ≈ ${eurToThb} THB (taxa aproximada, sem ligação)`;
+                if (!eurToThb) {
+                    eurToThb = 39; // fallback aproximado, sem ligação
+                    updateRateNote(eurToThb, null, true);
+                } else if (manual) {
+                    const note = document.getElementById('conv-rate-note');
+                    note.textContent = `Sem ligação — a usar a última taxa conhecida.`;
+                }
+            } finally {
+                if (btn) btn.classList.remove('spinning');
             }
+        }
+
+        function updateRateNote(rate, time, isFallback) {
+            const note = document.getElementById('conv-rate-note');
+            if (!note) return;
+            let whenText = 'taxa aproximada';
+            if (time) {
+                const mins = Math.round((Date.now() - time) / 60000);
+                whenText = mins < 1 ? 'agora mesmo' : mins < 60 ? `há ${mins} min` : 'há mais de 1h';
+            }
+            note.textContent = `1 EUR ≈ ${rate.toFixed(2)} THB ${isFallback ? '(sem ligação, ' + whenText + ')' : '(atualizado ' + whenText + ')'}`;
+        }
+
+        function swapCurrencyFocus() {
+            const eurEl = document.getElementById('conv-eur');
+            const thbEl = document.getElementById('conv-thb');
+            const tmp = eurEl.value; eurEl.value = thbEl.value; thbEl.value = tmp;
+            if (thbEl.value) convertFrom('thb'); else if (eurEl.value) convertFrom('eur');
         }
         function convertFrom(source) {
             if (!eurToThb) return;
@@ -760,3 +1186,4 @@
     </script>
 </body>
 </html>
+

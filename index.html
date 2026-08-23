@@ -6,6 +6,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0A2E2A">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <title>Tailândia 2026</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -235,6 +237,55 @@
         .user-row .name { font-size:14px; font-weight:700; color:var(--ink); flex:1; }
         .user-row .check-mark { color: var(--jade); font-size:16px; opacity:0; }
         .user-row.selected .check-mark { opacity:1; }
+
+        /* Trip status pill */
+        .trip-status-line { display:inline-flex; align-items:center; gap:6px; background: rgba(201,162,39,0.22); color: var(--gold); font-weight:700; font-size:11px; padding: 4px 10px; border-radius: 99px; margin-top: 5px; }
+
+        /* Day photo hero */
+        .day-hero { height: 110px; border-radius: 16px; margin-bottom: 12px; position: relative; overflow: hidden; background-size: cover; background-position: center; display:flex; align-items:flex-end; }
+        .day-hero .hero-fallback-icon { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size: 34px; color: rgba(255,255,255,0.55); }
+        .day-hero .hero-credit { position:absolute; bottom:4px; right:8px; font-size:8px; color: rgba(255,255,255,0.65); }
+
+        /* Day stats bar */
+        .day-stats { display:flex; gap: 14px; margin: -4px 0 14px; flex-wrap: wrap; }
+        .day-stats span { font-size: 11.5px; font-weight:600; color: var(--ink-soft); display:inline-flex; align-items:center; gap:5px; }
+        .day-stats i { color: var(--jade); font-size: 10px; }
+
+        /* Skeleton loading */
+        .skeleton { background: linear-gradient(90deg, var(--line) 25%, color-mix(in srgb, var(--line) 50%, var(--surface)) 37%, var(--line) 63%); background-size: 400% 100%; animation: shimmer 1.4s ease infinite; border-radius: 10px; }
+        @keyframes shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+        .skel-nav { width: 58px; height: 52px; border-radius: 14px; flex-shrink:0; }
+        .skel-block { height: 14px; margin-bottom: 10px; }
+
+        /* Swipe / directional transitions */
+        .tab-content.active.dir-right { animation: slideFromRight 0.3s cubic-bezier(.22,.68,.36,1); }
+        .tab-content.active.dir-left { animation: slideFromLeft 0.3s cubic-bezier(.22,.68,.36,1); }
+        @keyframes slideFromRight { from { opacity:0; transform: translateX(26px); } to { opacity:1; transform: translateX(0); } }
+        @keyframes slideFromLeft { from { opacity:0; transform: translateX(-26px); } to { opacity:1; transform: translateX(0); } }
+
+        /* Locate-me button on map */
+        .locate-btn {
+            position: absolute; top: calc(72px + env(safe-area-inset-top)); right: 16px; z-index: 25;
+            width: 38px; height: 38px; border-radius: 50%; border: none; background: var(--surface); color: var(--jade);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2); display:flex; align-items:center; justify-content:center; font-size: 14px; cursor:pointer;
+        }
+        .locate-btn:active { transform: scale(0.92); }
+        .locate-btn.locating i { animation: spin 0.8s linear infinite; }
+
+        /* Custom stops */
+        .add-stop-btn { display:flex; align-items:center; justify-content:center; gap:8px; border: 1.5px dashed var(--line); border-radius: 14px; padding: 12px; color: var(--ink-soft); font-size: 12.5px; font-weight:700; cursor:pointer; margin: 6px 0 10px 0; background: none; width: 100%; }
+        .add-stop-btn:active { background: rgba(120,120,120,0.06); }
+        .custom-tag { font-size: 8.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.04em; color: var(--jade); background: color-mix(in srgb, var(--jade) 14%, var(--surface)); padding: 2px 7px; border-radius: 99px; margin-left: 6px; }
+
+        /* Memories gallery */
+        .memory-item { display:flex; gap:10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+        .memory-item:last-child { border-bottom: none; }
+        .memory-item img { width: 52px; height: 52px; border-radius: 10px; object-fit:cover; flex-shrink:0; }
+        .memory-item .no-photo { width:52px; height:52px; border-radius:10px; background: var(--bg); display:flex; align-items:center; justify-content:center; color: var(--ink-soft); flex-shrink:0; }
+        .memory-item .m-main { flex:1; min-width:0; }
+        .memory-item .m-day { font-size: 9.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.04em; color: var(--gold); }
+        .memory-item .m-name { font-size: 13px; font-weight:700; color: var(--ink); }
+        .memory-item .m-text { font-size: 12px; color: var(--ink-soft); font-style: italic; margin: 2px 0 0; }
     </style>
 </head>
 <body>
@@ -245,6 +296,7 @@
                 <p class="eyebrow">Tailândia · 2026</p>
                 <h1 class="header-title">Roteiro da viagem</h1>
                 <p class="header-sub" id="header-location"><i class="fa-solid fa-bed"></i> A carregar...</p>
+                <div><span class="trip-status-line" id="trip-status-line" style="display:none;"></span></div>
             </div>
             <div class="header-right">
                 <button class="user-badge" id="user-badge" onclick="openUserSheet(false)" style="background:var(--jade);" title="Trocar utilizador">?</button>
@@ -258,10 +310,16 @@
             </div>
         </header>
         <div id="map"></div>
+        <button class="locate-btn" id="locate-btn" onclick="locateMe()" title="A minha localização"><i class="fa-solid fa-location-crosshairs"></i></button>
         <div class="content-area" id="content-container">
-            <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; padding:40px 24px; text-align:center; color:var(--ink-soft);">
-                <i class="fa-solid fa-compass" style="font-size:38px; margin-bottom:14px; color:var(--jade); animation: spin 1.6s linear infinite;"></i>
-                <p style="font-weight:700; font-size:14px;">A carregar o teu roteiro...</p>
+            <div style="padding:22px 18px 8px;">
+                <div class="skeleton" style="height:110px; border-radius:16px; margin-bottom:14px;"></div>
+                <div class="skeleton skel-block" style="width:60%;"></div>
+                <div class="skeleton" style="height:24px; width:80%; margin-bottom:16px;"></div>
+                <div class="skeleton" style="height:64px; border-radius:18px; margin-bottom:16px;"></div>
+                <div class="skeleton skel-block" style="height:56px; border-radius:16px;"></div>
+                <div class="skeleton skel-block" style="height:56px; border-radius:16px;"></div>
+                <div class="skeleton skel-block" style="height:56px; border-radius:16px;"></div>
             </div>
         </div>
 
@@ -280,6 +338,7 @@
                 <div class="sheet-tab" data-pane="pane-budget" onclick="switchPane(this)"><i class="fa-solid fa-wallet"></i> Gastos</div>
                 <div class="sheet-tab" data-pane="pane-currency" onclick="switchPane(this)"><i class="fa-solid fa-coins"></i> Câmbio</div>
                 <div class="sheet-tab" data-pane="pane-info" onclick="switchPane(this)"><i class="fa-solid fa-triangle-exclamation"></i> Info</div>
+                <div class="sheet-tab" data-pane="pane-memories" onclick="switchPane(this)"><i class="fa-solid fa-images"></i> Memórias</div>
             </div>
             <div class="sheet-body">
                 <div class="sheet-pane active" id="pane-packing">
@@ -364,6 +423,12 @@
                     </div>
                     <p class="info-saved-note" id="info-saved-note">Guardado</p>
                 </div>
+                <div class="sheet-pane" id="pane-memories">
+                    <div class="pane-header">
+                        <h3><i class="fa-solid fa-images" style="color:var(--gold); margin-right:6px;"></i>As nossas memórias</h3>
+                    </div>
+                    <div id="memories-list"></div>
+                </div>
             </div>
         </div>
 
@@ -391,6 +456,30 @@
                 <h3 class="note-sheet-title">Quem está a usar a app?</h3>
                 <p style="font-size:12px; color:var(--ink-soft); margin:-6px 0 14px;">Cada pessoa guarda a sua própria mala, gastos, notas e progresso neste equipamento.</p>
                 <div id="user-rows"></div>
+            </div>
+        </div>
+
+        <!-- Custom stop sheet -->
+        <div class="sheet" id="custom-stop-sheet" style="z-index:96;">
+            <div class="sheet-handle"></div>
+            <div class="note-sheet-body">
+                <h3 class="note-sheet-title">Adicionar paragem</h3>
+                <div class="info-field">
+                    <label>Nome do sítio</label>
+                    <input type="text" id="custom-stop-name" placeholder="Ex: Mercado noturno">
+                </div>
+                <div class="info-field">
+                    <label>Nota (opcional)</label>
+                    <input type="text" id="custom-stop-note" placeholder="Ex: Abre às 18h, ir cedo">
+                </div>
+                <div class="info-field">
+                    <label>Link do Google Maps (opcional)</label>
+                    <input type="text" id="custom-stop-link" placeholder="Cola aqui o link, se tiveres">
+                </div>
+                <div class="note-actions">
+                    <button class="note-remove-btn" onclick="closeCustomStopSheet()"><i class="fa-solid fa-xmark"></i> Cancelar</button>
+                    <button class="note-save-btn" onclick="saveCustomStop()"><i class="fa-solid fa-check"></i> Adicionar</button>
+                </div>
             </div>
         </div>
     </div>
@@ -466,11 +555,18 @@
         }
 
         function mostrarEstadoCarregamento() {
-            document.getElementById('bottom-nav').innerHTML = '';
+            document.getElementById('bottom-nav').innerHTML = `
+                <div class="skeleton skel-nav"></div><div class="skeleton skel-nav"></div>
+                <div class="skeleton skel-nav"></div><div class="skeleton skel-nav"></div>`;
             document.getElementById('content-container').innerHTML = `
-                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; padding:40px 24px; text-align:center; color:var(--ink-soft);">
-                    <i class="fa-solid fa-compass" style="font-size:38px; margin-bottom:14px; color:var(--jade); animation: spin 1.6s linear infinite;"></i>
-                    <p style="font-weight:700; font-size:14px;">A carregar o teu roteiro...</p>
+                <div style="padding:22px 18px 8px;">
+                    <div class="skeleton" style="height:110px; border-radius:16px; margin-bottom:14px;"></div>
+                    <div class="skeleton skel-block" style="width:60%;"></div>
+                    <div class="skeleton" style="height:24px; width:80%; margin-bottom:16px;"></div>
+                    <div class="skeleton" style="height:64px; border-radius:18px; margin-bottom:16px;"></div>
+                    <div class="skeleton skel-block" style="height:56px; border-radius:16px;"></div>
+                    <div class="skeleton skel-block" style="height:56px; border-radius:16px;"></div>
+                    <div class="skeleton skel-block" style="height:56px; border-radius:16px;"></div>
                 </div>`;
         }
 
@@ -647,6 +743,7 @@
                     lat: lat,
                     lng: lng,
                     desc: row['descricao'] || "",
+                    mapsLink: (row['mapslink'] || row['maps'] || row['linkmaps'] || "").trim(),
                     transport: transporteLocal
                 });
             });
@@ -676,10 +773,11 @@
                 });
 
                 const searchName = encodeURIComponent(coord.name + ' ' + dayData.location);
+                const openUrl = coord.mapsLink || `https://www.google.com/maps/search/?api=1&query=${searchName}`;
 
                 L.marker([coord.lat, coord.lng], { icon: customIcon })
                     .bindPopup(`<b>${idx + 1}. ${coord.name}</b><br><span style="font-size:11px;color:gray;">${coord.desc}</span>`)
-                    .on('click', () => window.open(`https://www.google.com/maps/search/?api=1&query=${searchName}`, '_blank'))
+                    .on('click', () => window.open(openUrl, '_blank'))
                     .addTo(routeLayerGroup);
             });
 
@@ -703,11 +801,117 @@
         }
 
         function dayCompletion(day) {
-            const total = day.coords.length;
+            const customs = loadJSON(pKey('tailandia_paragens_' + day.id), []);
+            const total = day.coords.length + customs.length;
             if (total === 0) return { done: 0, total: 0, pct: 0 };
             let done = 0;
             day.coords.forEach((c, i) => { if (visitedMap[day.id + '_' + i]) done++; });
+            customs.forEach(c => { if (c.done) done++; });
             return { done, total, pct: Math.round((done / total) * 100) };
+        }
+
+        function buildStepsHtml(day) {
+            let stepsHtml = '<div class="timeline">';
+            day.coords.forEach((coord, i) => {
+                const hasCoords = !isNaN(coord.lat) && !isNaN(coord.lng);
+                const searchOrig = encodeURIComponent(coord.name + ' ' + day.location);
+                const canOpen = hasCoords || !!coord.mapsLink;
+                const openUrl = coord.mapsLink || `https://www.google.com/maps/search/?api=1&query=${searchOrig}`;
+                const visitKey = day.id + '_' + i;
+                const isDone = !!visitedMap[visitKey];
+                const notes = loadJSON(pKey(STORAGE_NOTES_KEY), {});
+                const noteData = notes[visitKey];
+
+                stepsHtml += `
+                    <div class="step-row ${isDone ? 'done' : ''}" id="row-${visitKey}" style="display:flex; align-items:flex-start; gap:10px; margin-bottom:8px;">
+                        <div class="step-dot">${i + 1}</div>
+                        <div class="step-card" style="flex:1;" ${canOpen ? `onclick="window.open('${openUrl}', '_blank')"` : ''}>
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                                <h4 style="font-weight:700; font-size:13.5px; line-height:1.3; margin:0; color:var(--ink);">${coord.name}</h4>
+                                ${canOpen ? '<i class="fa-solid fa-arrow-up-right-from-square" style="color:#CBD5E1; font-size:10px; margin-top:2px;"></i>' : ''}
+                            </div>
+                            ${coord.desc ? `<p style="font-size:12px; color:var(--ink-soft); margin:4px 0 0;">${coord.desc}</p>` : ''}
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:6px; flex-shrink:0;">
+                            <div class="note-btn ${noteData ? 'has-note' : ''}" onclick="event.stopPropagation(); openNoteSheet('${day.id}', ${i}, '${coord.name.replace(/'/g, "\\'")}')" title="Nota / foto"><i class="fa-solid fa-note-sticky"></i></div>
+                            <div class="visit-check ${isDone ? 'checked' : ''}" onclick="event.stopPropagation(); toggleVisited('${day.id}', ${i})"><i class="fa-solid fa-check"></i></div>
+                        </div>
+                    </div>
+                    ${noteData ? `<div class="note-preview">${noteData.photo ? `<img src="${noteData.photo}">` : ''}${noteData.text ? `<p>${noteData.text}</p>` : ''}</div>` : ''}`;
+
+                if (coord.transport) {
+                    const origParam = hasCoords ? encodeURIComponent(`${coord.lat},${coord.lng}`) : searchOrig;
+                    let destParam = origParam;
+                    if (i < day.coords.length - 1) {
+                        const next = day.coords[i + 1];
+                        const nextHasCoords = !isNaN(next.lat) && !isNaN(next.lng);
+                        destParam = nextHasCoords ? encodeURIComponent(`${next.lat},${next.lng}`) : encodeURIComponent(next.name + ' ' + day.location);
+                    }
+
+                    stepsHtml += `
+                        <div class="transit-pill shadow-sm" onclick="window.open('https://www.google.com/maps/dir/?api=1&origin=${origParam}&destination=${destParam}', '_blank')" title="Navegar no Google Maps">
+                            <i class="fa-solid ${coord.transport.icon}"></i>
+                            <span>${coord.transport.type}</span> <span style="opacity:0.5;">•</span> <span>${coord.transport.time}</span>
+                        </div>
+                        ${coord.transport.note ? `<div style="font-size:10.5px; color:var(--ink-soft); margin:-4px 0 14px 42px;">${coord.transport.note}</div>` : `<div style="margin-bottom:12px;"></div>`}`;
+                }
+            });
+
+            const customs = loadJSON(pKey('tailandia_paragens_' + day.id), []);
+            customs.forEach(c => {
+                const isDone = !!c.done;
+                const openUrl = c.link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.name + ' ' + day.location)}`;
+                stepsHtml += `
+                    <div class="step-row ${isDone ? 'done' : ''}" style="display:flex; align-items:flex-start; gap:10px; margin-bottom:8px;">
+                        <div class="step-dot" style="background:var(--gold);"><i class="fa-solid fa-plus" style="font-size:10px;"></i></div>
+                        <div class="step-card" style="flex:1;" onclick="window.open('${openUrl}', '_blank')">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                                <h4 style="font-weight:700; font-size:13.5px; margin:0; color:var(--ink);">${c.name}<span class="custom-tag">Teu</span></h4>
+                            </div>
+                            ${c.note ? `<p style="font-size:12px; color:var(--ink-soft); margin:4px 0 0;">${c.note}</p>` : ''}
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:6px; flex-shrink:0;">
+                            <div class="note-btn" onclick="event.stopPropagation(); deleteCustomStop('${day.id}', '${c.id}')" title="Remover"><i class="fa-solid fa-trash"></i></div>
+                            <div class="visit-check ${isDone ? 'checked' : ''}" onclick="event.stopPropagation(); toggleCustomStop('${day.id}', '${c.id}')"><i class="fa-solid fa-check"></i></div>
+                        </div>
+                    </div>`;
+            });
+
+            stepsHtml += `<button class="add-stop-btn" onclick="openCustomStopSheet('${day.id}')"><i class="fa-solid fa-plus"></i> Adicionar paragem</button>`;
+            stepsHtml += '</div>';
+            return stepsHtml;
+        }
+
+        function buildDayPanelHtml(day) {
+            const comp = dayCompletion(day);
+            return `
+                <div class="day-hero skeleton" id="hero-${day.id}"></div>
+                <div class="day-stats">${renderDayStatsHtml(day)}</div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <span class="location-tag"><i class="fa-solid fa-location-dot"></i> ${day.location}</span>
+                    <span class="weather-chip" id="weather-${day.id}" style="display:none; color:var(--ink-soft); background: var(--line);"><i class="fa-solid fa-cloud"></i> --</span>
+                    <button onclick="fetchDadosDoRoteiro()" class="sync-btn"><i class="fa-solid fa-rotate"></i> Sync</button>
+                </div>
+                <h2 class="display" style="font-size:22px; font-weight:600; line-height:1.2; margin:0 0 10px; color:var(--ink);">${day.title}</h2>
+                <div class="day-progress-wrap">
+                    <div class="day-progress-track"><div class="day-progress-fill" id="progress-${day.id}" style="width:${comp.pct}%;"></div></div>
+                    <span class="day-progress-label" id="progress-label-${day.id}">${comp.done}/${comp.total} visitados</span>
+                </div>
+                <div class="hotel-card">
+                    <i class="fa-solid fa-bed" style="color:var(--gold); font-size:16px;"></i>
+                    <div><div style="font-size:9px; text-transform:uppercase; letter-spacing:0.06em; font-weight:700; color:var(--gold);">Alojamento</div><div style="font-size:13px; font-weight:600;">${day.hotel}</div></div>
+                </div>
+                ${buildStepsHtml(day)}`;
+        }
+
+        function rerenderDayPanel(day) {
+            const panel = document.getElementById(`panel-${day.id}`);
+            if (panel) panel.innerHTML = buildDayPanelHtml(day);
+            const comp = dayCompletion(day);
+            const navItem = document.getElementById(`nav-${day.id}`);
+            if (navItem) navItem.classList.toggle('done', comp.total > 0 && comp.done === comp.total);
+            loadWeatherForDay(day);
+            loadDayHero(day);
         }
 
         function renderUI(itinerario) {
@@ -727,68 +931,11 @@
                 const panel = document.createElement('div');
                 panel.id = `panel-${day.id}`; panel.className = `tab-content ${index === 0 ? 'active' : ''}`;
                 panel.style.padding = '22px 18px 8px';
-
-                let stepsHtml = '<div class="timeline">';
-                day.coords.forEach((coord, i) => {
-                    const hasCoords = !isNaN(coord.lat) && !isNaN(coord.lng);
-                    const searchOrig = encodeURIComponent(coord.name + ' ' + day.location);
-                    const visitKey = day.id + '_' + i;
-                    const isDone = !!visitedMap[visitKey];
-                    const notes = loadJSON(pKey(STORAGE_NOTES_KEY), {});
-                    const noteData = notes[visitKey];
-
-                    stepsHtml += `
-                        <div class="step-row ${isDone ? 'done' : ''}" id="row-${visitKey}" style="display:flex; align-items:flex-start; gap:10px; margin-bottom:8px;">
-                            <div class="step-dot">${i + 1}</div>
-                            <div class="step-card" style="flex:1;" ${hasCoords ? `onclick="window.open('https://www.google.com/maps/search/?api=1&query=${searchOrig}', '_blank')"` : ''}>
-                                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
-                                    <h4 style="font-weight:700; font-size:13.5px; line-height:1.3; margin:0; color:var(--ink);">${coord.name}</h4>
-                                    ${hasCoords ? '<i class="fa-solid fa-arrow-up-right-from-square" style="color:#CBD5E1; font-size:10px; margin-top:2px;"></i>' : ''}
-                                </div>
-                                ${coord.desc ? `<p style="font-size:12px; color:var(--ink-soft); margin:4px 0 0;">${coord.desc}</p>` : ''}
-                            </div>
-                            <div style="display:flex; flex-direction:column; gap:6px; flex-shrink:0;">
-                                <div class="note-btn ${noteData ? 'has-note' : ''}" onclick="event.stopPropagation(); openNoteSheet('${day.id}', ${i}, '${coord.name.replace(/'/g, "\\'")}')" title="Nota / foto"><i class="fa-solid fa-note-sticky"></i></div>
-                                <div class="visit-check ${isDone ? 'checked' : ''}" onclick="event.stopPropagation(); toggleVisited('${day.id}', ${i})"><i class="fa-solid fa-check"></i></div>
-                            </div>
-                        </div>
-                        ${noteData ? `<div class="note-preview">${noteData.photo ? `<img src="${noteData.photo}">` : ''}${noteData.text ? `<p>${noteData.text}</p>` : ''}</div>` : ''}`;
-
-                    if (coord.transport) {
-                        let searchDest = searchOrig;
-                        if (i < day.coords.length - 1) {
-                            searchDest = encodeURIComponent(day.coords[i+1].name + ' ' + day.location);
-                        }
-
-                        stepsHtml += `
-                            <div class="transit-pill shadow-sm" onclick="window.open('https://www.google.com/maps/dir/?api=1&origin=${searchOrig}&destination=${searchDest}', '_blank')" title="Navegar no Google Maps">
-                                <i class="fa-solid ${coord.transport.icon}"></i>
-                                <span>${coord.transport.type}</span> <span style="opacity:0.5;">•</span> <span>${coord.transport.time}</span>
-                            </div>
-                            ${coord.transport.note ? `<div style="font-size:10.5px; color:var(--ink-soft); margin:-4px 0 14px 42px;">${coord.transport.note}</div>` : `<div style="margin-bottom:12px;"></div>`}`;
-                    }
-                });
-                stepsHtml += '</div>';
-
-                panel.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                        <span class="location-tag"><i class="fa-solid fa-location-dot"></i> ${day.location}</span>
-                        <span class="weather-chip" id="weather-${day.id}" style="display:none; color:var(--ink-soft); background: var(--line);"><i class="fa-solid fa-cloud"></i> --</span>
-                        <button onclick="fetchDadosDoRoteiro()" class="sync-btn"><i class="fa-solid fa-rotate"></i> Sync</button>
-                    </div>
-                    <h2 class="display" style="font-size:22px; font-weight:600; line-height:1.2; margin:0 0 10px; color:var(--ink);">${day.title}</h2>
-                    <div class="day-progress-wrap">
-                        <div class="day-progress-track"><div class="day-progress-fill" id="progress-${day.id}" style="width:${comp.pct}%;"></div></div>
-                        <span class="day-progress-label" id="progress-label-${day.id}">${comp.done}/${comp.total} visitados</span>
-                    </div>
-                    <div class="hotel-card">
-                        <i class="fa-solid fa-bed" style="color:var(--gold); font-size:16px;"></i>
-                        <div><div style="font-size:9px; text-transform:uppercase; letter-spacing:0.06em; font-weight:700; color:var(--gold);">Alojamento</div><div style="font-size:13px; font-weight:600;">${day.hotel}</div></div>
-                    </div>
-                    ${stepsHtml}`;
+                panel.innerHTML = buildDayPanelHtml(day);
                 container.appendChild(panel);
             });
-            if (itinerario.length > 0) selectDay(0);
+            renderTripStatus(itinerario);
+            if (itinerario.length > 0) selectDay(currentDayIndex < itinerario.length ? currentDayIndex : 0);
         }
 
         function toggleVisited(dayId, idx) {
@@ -812,22 +959,51 @@
             if (navItem) navItem.classList.toggle('done', comp.total > 0 && comp.done === comp.total);
         }
 
-        function selectDay(index) {
+        let currentDayIndex = 0;
+        function selectDay(index, direction) {
             const day = globalItinerary[index];
+            if (!day) return;
+            if (!direction) direction = index > currentDayIndex ? 'right' : index < currentDayIndex ? 'left' : 'none';
+            currentDayIndex = index;
+
             document.getElementById('header-location').innerHTML = `<i class="fa-solid fa-bed"></i> ${day.hotel.split('(')[0].trim()}`;
             document.getElementById('ring-num').textContent = day.dayNum;
             document.getElementById('ring-tot').textContent = 'de ' + globalItinerary.length;
             const pct = globalItinerary.length > 1 ? Math.round(((index + 1) / globalItinerary.length) * 100) : 100;
             document.getElementById('day-ring').style.setProperty('--pct', pct);
 
-            document.querySelectorAll('.tab-content').forEach(p => p.classList.remove('active'));
-            document.getElementById(`panel-${day.id}`).classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(p => p.classList.remove('active', 'dir-left', 'dir-right'));
+            const panel = document.getElementById(`panel-${day.id}`);
+            panel.classList.add('active');
+            if (direction === 'left') panel.classList.add('dir-left');
+            if (direction === 'right') panel.classList.add('dir-right');
+
             document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
             const activeNav = document.getElementById(`nav-${day.id}`); activeNav.classList.add('active');
             activeNav.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
             renderRouteOnMap(day); document.getElementById('content-container').scrollTop = 0;
             loadWeatherForDay(day);
+            loadDayHero(day);
         }
+
+        /* ---------- Swipe between days ---------- */
+        (function setupSwipe() {
+            const el = document.getElementById('content-container');
+            let startX = 0, startY = 0, tracking = false;
+            el.addEventListener('touchstart', (e) => {
+                startX = e.touches[0].clientX; startY = e.touches[0].clientY; tracking = true;
+            }, { passive: true });
+            el.addEventListener('touchend', (e) => {
+                if (!tracking) return;
+                tracking = false;
+                const dx = e.changedTouches[0].clientX - startX;
+                const dy = e.changedTouches[0].clientY - startY;
+                if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+                    if (dx < 0 && currentDayIndex < globalItinerary.length - 1) selectDay(currentDayIndex + 1, 'right');
+                    else if (dx > 0 && currentDayIndex > 0) selectDay(currentDayIndex - 1, 'left');
+                }
+            }, { passive: true });
+        })();
 
         const STORAGE_WEATHER_KEY = 'tailandia_tempo_cache';
 
@@ -903,6 +1079,7 @@
         }
         function closeAnySheet() {
             if (document.getElementById('note-sheet').classList.contains('open')) { closeNoteSheet(); return; }
+            if (document.getElementById('custom-stop-sheet').classList.contains('open')) { closeCustomStopSheet(); return; }
             if (document.getElementById('user-sheet').classList.contains('open')) { if (!userPickerForced) closeUserSheet(); return; }
             closeSheet();
         }
@@ -1011,6 +1188,173 @@
             note.classList.add('show');
             setTimeout(() => note.classList.remove('show'), 1200);
         }
+        /* ---------- Trip countdown & day stats ---------- */
+        const PT_MONTHS = { jan:0, fev:1, mar:2, abr:3, mai:4, jun:5, jul:6, ago:7, set:8, out:9, nov:10, dez:11 };
+
+        function parseTripDate(str) {
+            if (!str) return null;
+            const s = String(str).trim().toLowerCase();
+            let m = s.match(/(\d{1,2})\s*(?:de)?\s*([a-zçã]{3,})/i);
+            if (m) {
+                const day = parseInt(m[1]);
+                const monthKey = m[2].normalize('NFD').replace(/[\u0300-\u036f]/g, '').slice(0, 3);
+                if (PT_MONTHS.hasOwnProperty(monthKey)) {
+                    const yearMatch = s.match(/(20\d{2})/);
+                    const year = yearMatch ? parseInt(yearMatch[1]) : 2026;
+                    return new Date(year, PT_MONTHS[monthKey], day);
+                }
+            }
+            const parsed = Date.parse(str);
+            return isNaN(parsed) ? null : new Date(parsed);
+        }
+
+        function renderTripStatus(itinerario) {
+            const el = document.getElementById('trip-status-line');
+            if (!el || itinerario.length === 0) return;
+            const firstDate = parseTripDate(itinerario[0].date);
+            const lastDate = parseTripDate(itinerario[itinerario.length - 1].date);
+            if (!firstDate || !lastDate) { el.style.display = 'none'; return; }
+
+            const today = new Date(); today.setHours(0,0,0,0);
+            firstDate.setHours(0,0,0,0); lastDate.setHours(0,0,0,0);
+
+            const msPerDay = 86400000;
+            if (today < firstDate) {
+                const days = Math.round((firstDate - today) / msPerDay);
+                el.innerHTML = `<i class="fa-solid fa-plane-departure"></i> ${days === 1 ? 'Falta 1 dia!' : `Faltam ${days} dias!`}`;
+            } else if (today >= firstDate && today <= lastDate) {
+                const dayNum = Math.round((today - firstDate) / msPerDay) + 1;
+                el.innerHTML = `<i class="fa-solid fa-sun"></i> Estás na viagem! Dia ${dayNum} de ${itinerario.length}`;
+            } else {
+                el.innerHTML = `<i class="fa-solid fa-heart"></i> Já viveram esta viagem — que saudades!`;
+            }
+            el.style.display = 'inline-flex';
+        }
+
+        function haversineKm(lat1, lng1, lat2, lng2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        function parseTransportMinutes(str) {
+            if (!str) return null;
+            let total = 0, found = false;
+            const hMatch = str.match(/(\d+(?:[.,]\d+)?)\s*h/i);
+            if (hMatch) { total += parseFloat(hMatch[1].replace(',', '.')) * 60; found = true; }
+            const mMatch = str.match(/(\d+)\s*min/i);
+            if (mMatch) { total += parseInt(mMatch[1]); found = true; }
+            return found ? Math.round(total) : null;
+        }
+
+        function formatMinutes(m) {
+            if (m < 60) return `${m} min`;
+            const h = Math.floor(m / 60), rem = m % 60;
+            return rem > 0 ? `${h}h${String(rem).padStart(2,'0')}` : `${h}h`;
+        }
+
+        function computeDayStats(day) {
+            const validCoords = day.coords.filter(c => !isNaN(c.lat) && !isNaN(c.lng));
+            let distanceKm = 0;
+            for (let i = 0; i < validCoords.length - 1; i++) {
+                distanceKm += haversineKm(validCoords[i].lat, validCoords[i].lng, validCoords[i+1].lat, validCoords[i+1].lng);
+            }
+            let minutes = 0, hasTime = false;
+            day.coords.forEach(c => {
+                if (c.transport && c.transport.time) {
+                    const m = parseTransportMinutes(c.transport.time);
+                    if (m != null) { minutes += m; hasTime = true; }
+                }
+            });
+            const customCount = loadJSON(pKey('tailandia_paragens_' + day.id), []).length;
+            return { stops: day.coords.length + customCount, distanceKm, minutes, hasTime };
+        }
+
+        function renderDayStatsHtml(day) {
+            const stats = computeDayStats(day);
+            let html = `<span><i class="fa-solid fa-map-pin"></i> ${stats.stops} paragens</span>`;
+            if (stats.distanceKm > 0.05) html += `<span><i class="fa-solid fa-route"></i> ${stats.distanceKm.toFixed(1)} km</span>`;
+            if (stats.hasTime) html += `<span><i class="fa-solid fa-clock"></i> ~${formatMinutes(stats.minutes)} em trajetos</span>`;
+            return html;
+        }
+
+        /* ---------- Day photo hero ---------- */
+        const STORAGE_HEROIMG_KEY = 'tailandia_hero_cache';
+        const HERO_GRADIENTS = [
+            ['#0E7C66', '#0A2E2A'], ['#C9A227', '#8a6e1c'], ['#3B82C4', '#1c4066'],
+            ['#8B6FB3', '#4a3a63'], ['#E0574C', '#8a2e26']
+        ];
+        function heroFallbackIcon(day) {
+            const text = (day.title + ' ' + day.location).toLowerCase();
+            if (/praia|ilha|phi phi|koh|krabi/.test(text)) return 'fa-umbrella-beach';
+            if (/templo|wat|palácio|palacio/.test(text)) return 'fa-torii-gate';
+            if (/mercado|market/.test(text)) return 'fa-store';
+            if (/voo|aeroporto|airport/.test(text)) return 'fa-plane';
+            return 'fa-compass';
+        }
+        function hashStr(str) {
+            let h = 0;
+            for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+            return h;
+        }
+        function applyHeroFallback(el, day) {
+            el.classList.remove('skeleton');
+            const pair = HERO_GRADIENTS[hashStr(day.id) % HERO_GRADIENTS.length];
+            el.style.background = `linear-gradient(135deg, ${pair[0]}, ${pair[1]})`;
+            el.innerHTML = `<i class="fa-solid ${heroFallbackIcon(day)} hero-fallback-icon"></i>`;
+        }
+        async function loadDayHero(day) {
+            const el = document.getElementById(`hero-${day.id}`);
+            if (!el) return;
+            const cache = loadJSON(STORAGE_HEROIMG_KEY, {});
+            const cached = cache[day.location];
+            if (cached === null) { applyHeroFallback(el, day); return; }
+            if (cached) { el.classList.remove('skeleton'); el.style.backgroundImage = `url('${cached}')`; el.innerHTML = `<span class="hero-credit">Wikipedia</span>`; return; }
+
+            applyHeroFallback(el, day);
+            try {
+                const query = encodeURIComponent(day.location || day.title);
+                const res = await fetch(`https://pt.wikipedia.org/api/rest_v1/page/summary/${query}`);
+                if (!res.ok) throw new Error('no page');
+                const data = await res.json();
+                const img = data.thumbnail && data.thumbnail.source;
+                if (!img) throw new Error('no thumbnail');
+                el.style.backgroundImage = `url('${img}')`;
+                el.innerHTML = `<span class="hero-credit">Wikipedia</span>`;
+                cache[day.location] = img;
+                saveJSON(STORAGE_HEROIMG_KEY, cache);
+            } catch (e) {
+                cache[day.location] = null;
+                saveJSON(STORAGE_HEROIMG_KEY, cache);
+            }
+        }
+
+        /* ---------- Map locate-me ---------- */
+        let myLocationMarker = null;
+        function locateMe() {
+            const btn = document.getElementById('locate-btn');
+            if (!navigator.geolocation) { alert('O teu dispositivo não suporta localização.'); return; }
+            btn.classList.add('locating');
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    btn.classList.remove('locating');
+                    const { latitude, longitude } = pos.coords;
+                    if (myLocationMarker) map.removeLayer(myLocationMarker);
+                    const icon = L.divIcon({
+                        className: 'dummy',
+                        html: `<div style="width:18px;height:18px;border-radius:50%;background:#3B82C4;border:3px solid white;box-shadow:0 0 0 4px rgba(59,130,196,0.3);"></div>`,
+                        iconSize: [18, 18], iconAnchor: [9, 9]
+                    });
+                    myLocationMarker = L.marker([latitude, longitude], { icon }).addTo(map);
+                    map.setView([latitude, longitude], 14);
+                },
+                () => { btn.classList.remove('locating'); alert('Não foi possível obter a tua localização. Verifica as permissões.'); },
+                { enableHighAccuracy: true, timeout: 8000 }
+            );
+        }
+
         function openSheet() {
             document.getElementById('sheet-overlay').classList.add('open');
             document.getElementById('tools-sheet').classList.add('open');
@@ -1027,6 +1371,85 @@
             tabEl.classList.add('active');
             document.getElementById(tabEl.dataset.pane).classList.add('active');
             if (tabEl.dataset.pane === 'pane-currency') fetchExchangeRate(false);
+            if (tabEl.dataset.pane === 'pane-memories') renderMemories();
+        }
+
+        /* ---------- Custom stops ---------- */
+        let currentCustomStopDay = null;
+        function openCustomStopSheet(dayId) {
+            currentCustomStopDay = dayId;
+            document.getElementById('custom-stop-name').value = '';
+            document.getElementById('custom-stop-note').value = '';
+            document.getElementById('custom-stop-link').value = '';
+            document.getElementById('sheet-overlay').classList.add('open');
+            document.getElementById('custom-stop-sheet').classList.add('open');
+        }
+        function closeCustomStopSheet() {
+            document.getElementById('custom-stop-sheet').classList.remove('open');
+            document.getElementById('sheet-overlay').classList.remove('open');
+            currentCustomStopDay = null;
+        }
+        function saveCustomStop() {
+            if (!currentCustomStopDay) return;
+            const name = document.getElementById('custom-stop-name').value.trim();
+            if (!name) return;
+            const note = document.getElementById('custom-stop-note').value.trim();
+            const link = document.getElementById('custom-stop-link').value.trim();
+            const key = 'tailandia_paragens_' + currentCustomStopDay;
+            const list = loadJSON(pKey(key), []);
+            list.push({ id: 'c' + Date.now(), name, note, link, done: false });
+            saveJSON(pKey(key), list);
+            const dayId = currentCustomStopDay;
+            closeCustomStopSheet();
+            const day = globalItinerary.find(d => d.id === dayId);
+            if (day) rerenderDayPanel(day);
+        }
+        function toggleCustomStop(dayId, stopId) {
+            const key = 'tailandia_paragens_' + dayId;
+            const list = loadJSON(pKey(key), []);
+            const item = list.find(s => s.id === stopId);
+            if (item) item.done = !item.done;
+            saveJSON(pKey(key), list);
+            const day = globalItinerary.find(d => d.id === dayId);
+            if (day) rerenderDayPanel(day);
+        }
+        function deleteCustomStop(dayId, stopId) {
+            const key = 'tailandia_paragens_' + dayId;
+            let list = loadJSON(pKey(key), []);
+            list = list.filter(s => s.id !== stopId);
+            saveJSON(pKey(key), list);
+            const day = globalItinerary.find(d => d.id === dayId);
+            if (day) rerenderDayPanel(day);
+        }
+
+        /* ---------- Memories gallery ---------- */
+        function renderMemories() {
+            const wrap = document.getElementById('memories-list');
+            const notes = loadJSON(pKey(STORAGE_NOTES_KEY), {});
+            const items = [];
+            globalItinerary.forEach(day => {
+                day.coords.forEach((coord, i) => {
+                    const n = notes[day.id + '_' + i];
+                    if (n) items.push({ dayLabel: `Dia ${day.dayNum}`, name: coord.name, text: n.text, photo: n.photo });
+                });
+                const customs = loadJSON(pKey('tailandia_paragens_' + day.id), []);
+                customs.forEach(c => {
+                    if (c.note) items.push({ dayLabel: `Dia ${day.dayNum}`, name: c.name, text: c.note, photo: null });
+                });
+            });
+            if (items.length === 0) {
+                wrap.innerHTML = '<p style="font-size:12px;color:var(--ink-soft);">Ainda sem memórias guardadas. Adiciona notas e fotos aos sítios que visitares!</p>';
+                return;
+            }
+            wrap.innerHTML = items.map(it => `
+                <div class="memory-item">
+                    ${it.photo ? `<img src="${it.photo}">` : `<div class="no-photo"><i class="fa-solid fa-note-sticky"></i></div>`}
+                    <div class="m-main">
+                        <div class="m-day">${it.dayLabel}</div>
+                        <div class="m-name">${it.name}</div>
+                        ${it.text ? `<p class="m-text">"${it.text}"</p>` : ''}
+                    </div>
+                </div>`).join('');
         }
 
         function initTools() {
@@ -1131,7 +1554,7 @@
             const btn = document.getElementById('rate-refresh-btn');
             if (btn) btn.classList.add('spinning');
             try {
-                const res = await fetch('https://api.frankfurter.app/latest?from=EUR&to=THB');
+                const res = await fetch('https://api.frankfurter.dev/v1/latest?from=EUR&to=THB');
                 if (!res.ok) throw new Error('rate fetch failed');
                 const data = await res.json();
                 eurToThb = data.rates.THB;
@@ -1183,6 +1606,12 @@
         }
 
         window.addEventListener('load', bootApp);
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(() => {});
+            });
+        }
     </script>
 </body>
 </html>

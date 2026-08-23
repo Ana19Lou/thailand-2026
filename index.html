@@ -190,7 +190,7 @@
         .refresh-btn.spinning i { animation: spin 0.7s linear infinite; }
         .last-updated { font-size: 10.5px; color: var(--ink-soft); }
 
-        .cat-select { border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 10px; padding: 0 8px; font-size: 16px; font-family: inherit; height: 38px; flex: 0 0 44px; }
+        .cat-select { border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 10px; padding: 0 6px; font-size: 12.5px; font-family: inherit; height: 38px; flex: 0 1 92px; }
         .cat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink:0; }
         .budget-row-main { display:flex; flex-direction:column; flex:1; min-width:0; }
         .budget-row-main .desc { font-size: 13px; color: var(--ink); }
@@ -365,15 +365,9 @@
                     </div>
                     <div id="budget-list"></div>
                     <div class="add-row">
-                        <select id="budget-cat" class="cat-select">
-                            <option value="Comida">🍜</option>
-                            <option value="Transporte">🚕</option>
-                            <option value="Compras">🛍️</option>
-                            <option value="Alojamento">🏨</option>
-                            <option value="Outro">✨</option>
-                        </select>
-                        <input type="text" id="budget-desc" placeholder="Descrição" style="flex:1.4;">
-                        <input type="number" id="budget-amount" placeholder="€" style="flex:0.7;">
+                        <select id="budget-cat" class="cat-select"></select>
+                        <input type="text" id="budget-desc" placeholder="Descrição" style="flex:1.2;">
+                        <input type="number" id="budget-amount" placeholder="€" style="flex:0.6;">
                         <button onclick="addExpense()"><i class="fa-solid fa-plus"></i></button>
                     </div>
                 </div>
@@ -479,6 +473,26 @@
                 <div class="note-actions">
                     <button class="note-remove-btn" onclick="closeCustomStopSheet()"><i class="fa-solid fa-xmark"></i> Cancelar</button>
                     <button class="note-save-btn" onclick="saveCustomStop()"><i class="fa-solid fa-check"></i> Adicionar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- New category sheet -->
+        <div class="sheet" id="category-sheet" style="z-index:96;">
+            <div class="sheet-handle"></div>
+            <div class="note-sheet-body">
+                <h3 class="note-sheet-title">Nova categoria</h3>
+                <div class="info-field">
+                    <label>Nome</label>
+                    <input type="text" id="new-cat-name" placeholder="Ex: Bilhetes, Presentes...">
+                </div>
+                <div class="info-field">
+                    <label>Emoji (opcional)</label>
+                    <input type="text" id="new-cat-emoji" placeholder="🎟️" maxlength="4">
+                </div>
+                <div class="note-actions">
+                    <button class="note-remove-btn" onclick="closeCategorySheet()"><i class="fa-solid fa-xmark"></i> Cancelar</button>
+                    <button class="note-save-btn" onclick="saveNewCategory()"><i class="fa-solid fa-check"></i> Criar</button>
                 </div>
             </div>
         </div>
@@ -1083,6 +1097,7 @@
         function closeAnySheet() {
             if (document.getElementById('note-sheet').classList.contains('open')) { closeNoteSheet(); return; }
             if (document.getElementById('custom-stop-sheet').classList.contains('open')) { closeCustomStopSheet(); return; }
+            if (document.getElementById('category-sheet').classList.contains('open')) { closeCategorySheet(); return; }
             if (document.getElementById('user-sheet').classList.contains('open')) { if (!userPickerForced) closeUserSheet(); return; }
             closeSheet();
         }
@@ -1287,13 +1302,13 @@
         // Curated photos per location, with the best crop position for each.
         // Keys are matched as substrings against the day's location + title (accent/case-insensitive).
         const LOCATION_HERO_IMAGES = {
-            'chiang mai': { url: 'https://res.klook.com/image/upload/fl_lossy.progressive,q_60/Mobile/City/cswglxpstphljdourpfu.jpg', position: 'bottom' },
-            'krabi': { url: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/15/33/fd/2f/krabi-town.jpg?w=1200&h=700&s=1', position: 'bottom' },
-            'banguecoque': { url: 'https://waytovietnam.com/userfiles/images/TRavel%20Guide/Thailand/Bangkok%20City.jpg', position: 'center' },
-            'bangkok': { url: 'https://waytovietnam.com/userfiles/images/TRavel%20Guide/Thailand/Bangkok%20City.jpg', position: 'center' },
-            'ayutthaya': { url: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/07/ba/32/7e/photo0jpg.jpg?w=900&h=500&s=1', position: 'top' }
+            'chiang mai': { url: 'https://res.klook.com/image/upload/fl_lossy.progressive,q_60/Mobile/City/cswglxpstphljdourpfu.jpg', position: 'center bottom' },
+            'krabi': { url: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/15/33/fd/2f/krabi-town.jpg?w=1200&h=700&s=1', position: 'center bottom' },
+            'banguecoque': { url: 'https://waytovietnam.com/userfiles/images/TRavel%20Guide/Thailand/Bangkok%20City.jpg', position: 'center center' },
+            'bangkok': { url: 'https://waytovietnam.com/userfiles/images/TRavel%20Guide/Thailand/Bangkok%20City.jpg', position: 'center center' },
+            'ayutthaya': { url: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/07/ba/32/7e/photo0jpg.jpg?w=900&h=500&s=1', position: 'center 30%' }
         };
-        const DEFAULT_HERO_IMAGE = { url: 'https://cdn.forevervacation.com/uploads/blog/thailand-visitor-guide-things-to-do-4406.jpg', position: 'top' };
+        const DEFAULT_HERO_IMAGE = { url: 'https://cdn.forevervacation.com/uploads/blog/thailand-visitor-guide-things-to-do-4406.jpg', position: 'center top' };
 
         function normalizeText(s) {
             return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -1325,8 +1340,7 @@
             el.classList.remove('skeleton');
             el.style.background = 'none';
             const info = getHeroImage(day);
-            const posCss = info.position === 'bottom' ? 'center bottom' : info.position === 'top' ? 'center top' : 'center center';
-            el.innerHTML = `<img src="${info.url}" style="width:100%; height:100%; object-fit:cover; object-position:${posCss};" onerror="applyHeroFallback(document.getElementById('hero-${day.id}'), '${day.id}')">`;
+            el.innerHTML = `<img src="${info.url}" style="width:100%; height:100%; object-fit:cover; object-position:${info.position};" onerror="applyHeroFallback(document.getElementById('hero-${day.id}'), '${day.id}')">`;
         }
 
         /* ---------- Map locate-me ---------- */
@@ -1456,6 +1470,7 @@
             renderPacking(packing);
 
             renderBudget(loadJSON(pKey(STORAGE_BUDGET_KEY), []));
+            renderCategorySelect();
 
             document.getElementById('packing-input').onkeydown = e => { if (e.key === 'Enter') addPackingItem(); };
             document.getElementById('budget-desc').onkeydown = e => { if (e.key === 'Enter') addExpense(); };
@@ -1499,21 +1514,75 @@
             input.value = '';
         }
 
-        const CAT_ICONS = { Comida: '🍜', Transporte: '🚕', Compras: '🛍️', Alojamento: '🏨', Outro: '✨' };
-        const CAT_COLORS = { Comida: '#E0574C', Transporte: '#3B82C4', Compras: '#C9A227', Alojamento: '#0E7C66', Outro: '#8B6FB3' };
+        const STORAGE_CUSTOM_CATS_KEY = 'tailandia_categorias_custom';
+        const BASE_CATEGORIES = [
+            { key: 'Comida', emoji: '🍜', color: '#E0574C' },
+            { key: 'Transporte', emoji: '🚕', color: '#3B82C4' },
+            { key: 'Compras', emoji: '🛍️', color: '#C9A227' },
+            { key: 'Alojamento', emoji: '🏨', color: '#0E7C66' }
+        ];
+        const FALLBACK_CATEGORY = { key: 'Outro', emoji: '✨', color: '#8B6FB3' };
+        const CUSTOM_CAT_PALETTE = ['#E0574C', '#3B82C4', '#C9A227', '#0E7C66', '#8B6FB3', '#D9773D'];
+
+        function getCustomCategories() { return loadJSON(pKey(STORAGE_CUSTOM_CATS_KEY), []); }
+        function getAllCategories() { return [...BASE_CATEGORIES, ...getCustomCategories(), FALLBACK_CATEGORY]; }
+        function getCategoryMeta(key) {
+            return getAllCategories().find(c => c.key === key) || FALLBACK_CATEGORY;
+        }
+        function renderCategorySelect(selectedKey) {
+            const sel = document.getElementById('budget-cat');
+            if (!sel) return;
+            const cats = getAllCategories();
+            sel.innerHTML = cats.map(c => `<option value="${c.key}">${c.emoji} ${c.key}</option>`).join('')
+                + `<option value="__add__">➕ Nova categoria...</option>`;
+            sel.value = selectedKey && cats.some(c => c.key === selectedKey) ? selectedKey : cats[0].key;
+            sel.onchange = () => {
+                if (sel.value === '__add__') { openCategorySheet(); }
+            };
+        }
+
+        function openCategorySheet() {
+            document.getElementById('new-cat-name').value = '';
+            document.getElementById('new-cat-emoji').value = '';
+            document.getElementById('sheet-overlay').classList.add('open');
+            document.getElementById('category-sheet').classList.add('open');
+        }
+        function closeCategorySheet() {
+            document.getElementById('category-sheet').classList.remove('open');
+            document.getElementById('sheet-overlay').classList.remove('open');
+            renderCategorySelect(); // reset select back to a real value if user cancels
+        }
+        function saveNewCategory() {
+            const name = document.getElementById('new-cat-name').value.trim();
+            if (!name) return;
+            const emoji = document.getElementById('new-cat-emoji').value.trim() || '🏷️';
+            const customs = getCustomCategories();
+            if (customs.some(c => c.key.toLowerCase() === name.toLowerCase())) {
+                renderCategorySelect(name);
+                document.getElementById('category-sheet').classList.remove('open');
+                document.getElementById('sheet-overlay').classList.remove('open');
+                return;
+            }
+            const color = CUSTOM_CAT_PALETTE[customs.length % CUSTOM_CAT_PALETTE.length];
+            customs.push({ key: name, emoji, color });
+            saveJSON(pKey(STORAGE_CUSTOM_CATS_KEY), customs);
+            document.getElementById('category-sheet').classList.remove('open');
+            document.getElementById('sheet-overlay').classList.remove('open');
+            renderCategorySelect(name);
+        }
 
         function renderBudget(list) {
             const wrap = document.getElementById('budget-list');
             const total = list.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
             document.getElementById('budget-total-amount').textContent = '€' + total.toFixed(2);
             wrap.innerHTML = list.map((e, i) => {
-                const cat = e.cat || 'Outro';
+                const meta = getCategoryMeta(e.cat || 'Outro');
                 return `
                 <div class="tool-row">
-                    <span style="font-size:16px;">${CAT_ICONS[cat] || '✨'}</span>
+                    <span style="font-size:16px;">${meta.emoji}</span>
                     <div class="budget-row-main">
                         <span class="desc">${e.desc}</span>
-                        <span class="cat-label" style="color:${CAT_COLORS[cat] || 'var(--ink-soft)'};">${cat}</span>
+                        <span class="cat-label" style="color:${meta.color};">${meta.key}</span>
                     </div>
                     <div style="font-weight:700; font-size:13px; color:var(--jade); flex-shrink:0;">€${parseFloat(e.amount).toFixed(2)}</div>
                     <button class="tool-del" onclick="deleteExpense(${i})"><i class="fa-solid fa-xmark"></i></button>
@@ -1526,7 +1595,7 @@
             const catInput = document.getElementById('budget-cat');
             const desc = descInput.value.trim();
             const amount = parseFloat(amountInput.value);
-            if (!desc || isNaN(amount)) return;
+            if (!desc || isNaN(amount) || catInput.value === '__add__') return;
             const list = loadJSON(pKey(STORAGE_BUDGET_KEY), []);
             list.push({ desc, amount, cat: catInput.value });
             saveJSON(pKey(STORAGE_BUDGET_KEY), list);
@@ -1613,4 +1682,3 @@
     </script>
 </body>
 </html>
-

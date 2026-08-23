@@ -1,0 +1,17 @@
+{
+  "name": "Tailândia 2026",
+  "short_name": "Tailândia",
+  "description": "Roteiro da viagem à Tailândia — Ana & Raquel",
+  "start_url": "./tailandia-2026.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A2E2A",
+  "theme_color": "#0A2E2A",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

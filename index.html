@@ -743,7 +743,10 @@
                     lat: lat,
                     lng: lng,
                     desc: row['descricao'] || "",
-                    mapsLink: (row['mapslink'] || row['maps'] || row['linkmaps'] || "").trim(),
+                    mapsLink: (() => {
+                        const raw = (row['mapslink'] || row['maps'] || row['linkmaps'] || "").trim();
+                        return /^https?:\/\//i.test(raw) ? raw : "";
+                    })(),
                     transport: transporteLocal
                 });
             });
@@ -1281,54 +1284,49 @@
         }
 
         /* ---------- Day photo hero ---------- */
-        const STORAGE_HEROIMG_KEY = 'tailandia_hero_cache';
-        const HERO_GRADIENTS = [
-            ['#0E7C66', '#0A2E2A'], ['#C9A227', '#8a6e1c'], ['#3B82C4', '#1c4066'],
-            ['#8B6FB3', '#4a3a63'], ['#E0574C', '#8a2e26']
-        ];
+        // Curated photos per location, with the best crop position for each.
+        // Keys are matched as substrings against the day's location + title (accent/case-insensitive).
+        const LOCATION_HERO_IMAGES = {
+            'chiang mai': { url: 'https://res.klook.com/image/upload/fl_lossy.progressive,q_60/Mobile/City/cswglxpstphljdourpfu.jpg', position: 'bottom' },
+            'krabi': { url: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/15/33/fd/2f/krabi-town.jpg?w=1200&h=700&s=1', position: 'bottom' },
+            'banguecoque': { url: 'https://waytovietnam.com/userfiles/images/TRavel%20Guide/Thailand/Bangkok%20City.jpg', position: 'center' },
+            'bangkok': { url: 'https://waytovietnam.com/userfiles/images/TRavel%20Guide/Thailand/Bangkok%20City.jpg', position: 'center' },
+            'ayutthaya': { url: 'https://dynamic-media-cdn.tripadvisor.com/media/photo-o/07/ba/32/7e/photo0jpg.jpg?w=900&h=500&s=1', position: 'top' }
+        };
+        const DEFAULT_HERO_IMAGE = { url: 'https://cdn.forevervacation.com/uploads/blog/thailand-visitor-guide-things-to-do-4406.jpg', position: 'top' };
+
+        function normalizeText(s) {
+            return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        }
+        function getHeroImage(day) {
+            const text = normalizeText(day.location + ' ' + day.title);
+            for (const key in LOCATION_HERO_IMAGES) {
+                if (text.includes(normalizeText(key))) return LOCATION_HERO_IMAGES[key];
+            }
+            return DEFAULT_HERO_IMAGE;
+        }
         function heroFallbackIcon(day) {
-            const text = (day.title + ' ' + day.location).toLowerCase();
+            const text = normalizeText(day.title + ' ' + day.location);
             if (/praia|ilha|phi phi|koh|krabi/.test(text)) return 'fa-umbrella-beach';
-            if (/templo|wat|palácio|palacio/.test(text)) return 'fa-torii-gate';
+            if (/templo|wat|palacio/.test(text)) return 'fa-torii-gate';
             if (/mercado|market/.test(text)) return 'fa-store';
             if (/voo|aeroporto|airport/.test(text)) return 'fa-plane';
             return 'fa-compass';
         }
-        function hashStr(str) {
-            let h = 0;
-            for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
-            return h;
-        }
-        function applyHeroFallback(el, day) {
+        function applyHeroFallback(el, dayId) {
+            const day = globalItinerary.find(d => d.id === dayId);
             el.classList.remove('skeleton');
-            const pair = HERO_GRADIENTS[hashStr(day.id) % HERO_GRADIENTS.length];
-            el.style.background = `linear-gradient(135deg, ${pair[0]}, ${pair[1]})`;
-            el.innerHTML = `<i class="fa-solid ${heroFallbackIcon(day)} hero-fallback-icon"></i>`;
+            el.style.background = 'linear-gradient(135deg, #0E7C66, #0A2E2A)';
+            el.innerHTML = `<i class="fa-solid ${day ? heroFallbackIcon(day) : 'fa-compass'} hero-fallback-icon"></i>`;
         }
-        async function loadDayHero(day) {
+        function loadDayHero(day) {
             const el = document.getElementById(`hero-${day.id}`);
             if (!el) return;
-            const cache = loadJSON(STORAGE_HEROIMG_KEY, {});
-            const cached = cache[day.location];
-            if (cached === null) { applyHeroFallback(el, day); return; }
-            if (cached) { el.classList.remove('skeleton'); el.style.backgroundImage = `url('${cached}')`; el.innerHTML = `<span class="hero-credit">Wikipedia</span>`; return; }
-
-            applyHeroFallback(el, day);
-            try {
-                const query = encodeURIComponent(day.location || day.title);
-                const res = await fetch(`https://pt.wikipedia.org/api/rest_v1/page/summary/${query}`);
-                if (!res.ok) throw new Error('no page');
-                const data = await res.json();
-                const img = data.thumbnail && data.thumbnail.source;
-                if (!img) throw new Error('no thumbnail');
-                el.style.backgroundImage = `url('${img}')`;
-                el.innerHTML = `<span class="hero-credit">Wikipedia</span>`;
-                cache[day.location] = img;
-                saveJSON(STORAGE_HEROIMG_KEY, cache);
-            } catch (e) {
-                cache[day.location] = null;
-                saveJSON(STORAGE_HEROIMG_KEY, cache);
-            }
+            el.classList.remove('skeleton');
+            el.style.background = 'none';
+            const info = getHeroImage(day);
+            const posCss = info.position === 'bottom' ? 'center bottom' : info.position === 'top' ? 'center top' : 'center center';
+            el.innerHTML = `<img src="${info.url}" style="width:100%; height:100%; object-fit:cover; object-position:${posCss};" onerror="applyHeroFallback(document.getElementById('hero-${day.id}'), '${day.id}')">`;
         }
 
         /* ---------- Map locate-me ---------- */

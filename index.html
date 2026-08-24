@@ -124,7 +124,7 @@
         .step-row { position: relative; z-index: 1; }
         .step-dot { width: 30px; height: 30px; border-radius: 50%; background: var(--jade); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; box-shadow: 0 2px 6px rgba(14,124,102,0.35); transition: background 0.2s; }
         .step-row.done .step-dot { background: var(--gold); }
-        .step-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; box-shadow: 0 1px 2px rgba(var(--shadow-color),0.04); transition: transform 0.12s ease, border-color 0.12s ease, opacity 0.2s; cursor: pointer; }
+        .step-card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; box-shadow: 0 1px 2px rgba(var(--shadow-color),0.04); transition: transform 0.12s ease, border-color 0.12s ease, opacity 0.2s; cursor: pointer; display: block; text-decoration: none; color: inherit; }
         .step-card:active { transform: scale(0.98); border-color: var(--jade); }
         .step-row.done .step-card { opacity: 0.62; }
         .step-row.done .step-card h4 { text-decoration: line-through; text-decoration-color: var(--gold); }
@@ -135,7 +135,7 @@
         .transit-pill {
             display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; padding: 6px 14px;
             border-radius: 99px; margin: 6px 0 14px 42px; cursor: pointer; transition: transform 0.12s ease;
-            background: transparent; color: var(--ink-soft); border: 1px dashed var(--ink-soft);
+            background: transparent; color: var(--ink-soft); border: 1px dashed var(--ink-soft); text-decoration: none;
         }
         .transit-pill:active { transform: scale(0.96); background: rgba(120,120,120,0.08); }
 
@@ -286,6 +286,10 @@
         .memory-item .m-day { font-size: 9.5px; font-weight:800; text-transform:uppercase; letter-spacing:0.04em; color: var(--gold); }
         .memory-item .m-name { font-size: 13px; font-weight:700; color: var(--ink); }
         .memory-item .m-text { font-size: 12px; color: var(--ink-soft); font-style: italic; margin: 2px 0 0; }
+
+        /* Ride-hailing app buttons */
+        .ride-app-btn { display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700; padding:8px 14px; border-radius:99px; border:none; cursor:pointer; color:#fff; background: var(--ride-color, var(--jade)); }
+        .ride-app-btn:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
@@ -768,6 +772,86 @@
             return itinerarioAgrupado;
         }
 
+        /* ---------- Maps links (Apple Maps on iOS, Google Maps elsewhere) ---------- */
+        function isIOS() {
+            return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPadOS reports as Mac
+        }
+        function buildPlaceUrl(name, location, lat, lng, explicitLink) {
+            if (explicitLink) return explicitLink; // an explicit Maps_Link always wins, on any platform
+            const hasCoords = !isNaN(lat) && !isNaN(lng);
+            if (isIOS()) {
+                return hasCoords
+                    ? `https://maps.apple.com/?ll=${lat},${lng}&q=${encodeURIComponent(name)}`
+                    : `https://maps.apple.com/?q=${encodeURIComponent(name + ' ' + location)}`;
+            }
+            const query = hasCoords ? `${lat},${lng}` : (name + ' ' + location);
+            return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+        }
+        function buildDirectionsUrl(originLat, originLng, originText, destLat, destLng, destText) {
+            const hasOrigin = !isNaN(originLat) && !isNaN(originLng);
+            const hasDest = !isNaN(destLat) && !isNaN(destLng);
+            if (isIOS()) {
+                const saddr = hasOrigin ? `${originLat},${originLng}` : encodeURIComponent(originText);
+                const daddr = hasDest ? `${destLat},${destLng}` : encodeURIComponent(destText);
+                return `https://maps.apple.com/?saddr=${saddr}&daddr=${daddr}&dirflg=d`;
+            }
+            const origin = hasOrigin ? `${originLat},${originLng}` : encodeURIComponent(originText);
+            const destination = hasDest ? `${destLat},${destLng}` : encodeURIComponent(destText);
+            return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
+        }
+
+        /* ---------- Ride-hailing app deep links (best-effort) ---------- */
+        // These custom URL schemes and parameter names are not officially published by
+        // Bolt/Grab/Uber the way Google's Maps links are, so they're implemented on a
+        // best-effort basis from widely-used partner-integration patterns. Worst case if a
+        // param isn't honored, the app still opens to the right screen and you just confirm
+        // the addresses manually — it never fails to a broken page.
+        const RIDE_APP_DEFS = {
+            bolt: {
+                label: 'Bolt', icon: 'fa-bolt', color: '#34D07F',
+                buildScheme: (o, d) => `bolt://ride?pickup[latitude]=${o.lat}&pickup[longitude]=${o.lng}&pickup[address]=${encodeURIComponent(o.addr)}&destination[latitude]=${d.lat}&destination[longitude]=${d.lng}&destination[address]=${encodeURIComponent(d.addr)}`,
+                iosTerm: 'Bolt Request a Ride', androidTerm: 'Bolt taxi'
+            },
+            grab: {
+                label: 'Grab', icon: 'fa-car-side', color: '#00B14F',
+                buildScheme: (o, d) => `grab://open?screenType=BOOKING&pickupLatitude=${o.lat}&pickupLongitude=${o.lng}&pickupAddress=${encodeURIComponent(o.addr)}&dropOffLatitude=${d.lat}&dropOffLongitude=${d.lng}&dropOffAddress=${encodeURIComponent(d.addr)}`,
+                iosTerm: 'Grab Superapp', androidTerm: 'Grab'
+            },
+            uber: {
+                label: 'Uber', icon: 'fa-car', color: '#111111',
+                buildScheme: (o, d) => `uber://?action=setPickup&pickup[latitude]=${o.lat}&pickup[longitude]=${o.lng}&pickup[nickname]=${encodeURIComponent(o.addr)}&dropoff[latitude]=${d.lat}&dropoff[longitude]=${d.lng}&dropoff[nickname]=${encodeURIComponent(d.addr)}`,
+                iosTerm: 'Uber', androidTerm: 'Uber'
+            }
+        };
+        function detectRideApps(typeStr) {
+            if (!typeStr) return [];
+            const tokens = typeStr.toLowerCase().split(/[\/,]| e | and |&|\+/i).map(t => t.trim()).filter(Boolean);
+            const matched = [];
+            Object.keys(RIDE_APP_DEFS).forEach(key => {
+                if (tokens.some(t => t.includes(key))) matched.push(key);
+            });
+            return matched;
+        }
+        function tryOpenRideApp(schemeUrl, appKey) {
+            const def = RIDE_APP_DEFS[appKey];
+            const iosDevice = isIOS();
+            const term = iosDevice ? def.iosTerm : def.androidTerm;
+            const storeUrl = iosDevice
+                ? `https://apps.apple.com/search?term=${encodeURIComponent(term)}`
+                : `https://play.google.com/store/search?q=${encodeURIComponent(term)}&c=apps`;
+            let left = false;
+            const markLeft = () => { left = true; };
+            window.addEventListener('blur', markLeft, { once: true });
+            document.addEventListener('visibilitychange', markLeft, { once: true });
+            window.location.href = schemeUrl;
+            setTimeout(() => {
+                window.removeEventListener('blur', markLeft);
+                document.removeEventListener('visibilitychange', markLeft);
+                if (!left) window.location.href = storeUrl;
+            }, 1300);
+        }
+
         function initMap() {
             map = L.map('map', { zoomControl: false }).setView([13.7563, 100.5018], 6);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
@@ -789,12 +873,10 @@
                     iconSize: [24, 24], iconAnchor: [12, 12]
                 });
 
-                const searchName = encodeURIComponent(coord.name + ' ' + dayData.location);
-                const openUrl = coord.mapsLink || `https://www.google.com/maps/search/?api=1&query=${searchName}`;
+                const openUrl = buildPlaceUrl(coord.name, dayData.location, coord.lat, coord.lng, coord.mapsLink);
 
                 L.marker([coord.lat, coord.lng], { icon: customIcon })
-                    .bindPopup(`<b>${idx + 1}. ${coord.name}</b><br><span style="font-size:11px;color:gray;">${coord.desc}</span>`)
-                    .on('click', () => window.open(openUrl, '_blank'))
+                    .bindPopup(`<b>${idx + 1}. ${coord.name}</b><br><span style="font-size:11px;color:gray;">${coord.desc}</span><br><a href="${openUrl}" target="_blank" rel="noopener noreferrer" style="color:#0E7C66;font-weight:700;font-size:11px;">Abrir no Maps →</a>`)
                     .addTo(routeLayerGroup);
             });
 
@@ -831,9 +913,8 @@
             let stepsHtml = '<div class="timeline">';
             day.coords.forEach((coord, i) => {
                 const hasCoords = !isNaN(coord.lat) && !isNaN(coord.lng);
-                const searchOrig = encodeURIComponent(coord.name + ' ' + day.location);
                 const canOpen = hasCoords || !!coord.mapsLink;
-                const openUrl = coord.mapsLink || `https://www.google.com/maps/search/?api=1&query=${searchOrig}`;
+                const openUrl = buildPlaceUrl(coord.name, day.location, coord.lat, coord.lng, coord.mapsLink);
                 const visitKey = day.id + '_' + i;
                 const isDone = !!visitedMap[visitKey];
                 const notes = loadJSON(pKey(STORAGE_NOTES_KEY), {});
@@ -842,13 +923,13 @@
                 stepsHtml += `
                     <div class="step-row ${isDone ? 'done' : ''}" id="row-${visitKey}" style="display:flex; align-items:flex-start; gap:10px; margin-bottom:8px;">
                         <div class="step-dot">${i + 1}</div>
-                        <div class="step-card" style="flex:1;" ${canOpen ? `onclick="window.open('${openUrl}', '_blank')"` : ''}>
+                        ${canOpen ? `<a class="step-card" style="flex:1;" href="${openUrl}" target="_blank" rel="noopener noreferrer">` : `<div class="step-card" style="flex:1;">`}
                             <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
                                 <h4 style="font-weight:700; font-size:13.5px; line-height:1.3; margin:0; color:var(--ink);">${coord.name}</h4>
                                 ${canOpen ? '<i class="fa-solid fa-arrow-up-right-from-square" style="color:#CBD5E1; font-size:10px; margin-top:2px;"></i>' : ''}
                             </div>
                             ${coord.desc ? `<p style="font-size:12px; color:var(--ink-soft); margin:4px 0 0;">${coord.desc}</p>` : ''}
-                        </div>
+                        ${canOpen ? '</a>' : '</div>'}
                         <div style="display:flex; flex-direction:column; gap:6px; flex-shrink:0;">
                             <div class="note-btn ${noteData ? 'has-note' : ''}" onclick="event.stopPropagation(); openNoteSheet('${day.id}', ${i}, '${coord.name.replace(/'/g, "\\'")}')" title="Nota / foto"><i class="fa-solid fa-note-sticky"></i></div>
                             <div class="visit-check ${isDone ? 'checked' : ''}" onclick="event.stopPropagation(); toggleVisited('${day.id}', ${i})"><i class="fa-solid fa-check"></i></div>
@@ -857,36 +938,52 @@
                     ${noteData ? `<div class="note-preview">${noteData.photo ? `<img src="${noteData.photo}">` : ''}${noteData.text ? `<p>${noteData.text}</p>` : ''}</div>` : ''}`;
 
                 if (coord.transport) {
-                    const origParam = hasCoords ? encodeURIComponent(`${coord.lat},${coord.lng}`) : searchOrig;
-                    let destParam = origParam;
+                    let destLat = NaN, destLng = NaN, destText = coord.name + ' ' + day.location;
                     if (i < day.coords.length - 1) {
                         const next = day.coords[i + 1];
-                        const nextHasCoords = !isNaN(next.lat) && !isNaN(next.lng);
-                        destParam = nextHasCoords ? encodeURIComponent(`${next.lat},${next.lng}`) : encodeURIComponent(next.name + ' ' + day.location);
+                        destLat = next.lat; destLng = next.lng; destText = next.name + ' ' + day.location;
+                    } else {
+                        destLat = coord.lat; destLng = coord.lng;
                     }
 
-                    stepsHtml += `
-                        <div class="transit-pill shadow-sm" onclick="window.open('https://www.google.com/maps/dir/?api=1&origin=${origParam}&destination=${destParam}', '_blank')" title="Navegar no Google Maps">
-                            <i class="fa-solid ${coord.transport.icon}"></i>
-                            <span>${coord.transport.type}</span> <span style="opacity:0.5;">•</span> <span>${coord.transport.time}</span>
-                        </div>
-                        ${coord.transport.note ? `<div style="font-size:10.5px; color:var(--ink-soft); margin:-4px 0 14px 42px;">${coord.transport.note}</div>` : `<div style="margin-bottom:12px;"></div>`}`;
+                    const rideApps = detectRideApps(coord.transport.type);
+                    if (rideApps.length > 0 && hasCoords && !isNaN(destLat) && !isNaN(destLng)) {
+                        const origin = { lat: coord.lat, lng: coord.lng, addr: coord.name + ' ' + day.location };
+                        const dest = { lat: destLat, lng: destLng, addr: destText };
+                        stepsHtml += `<div style="font-size:10.5px; color:var(--ink-soft); margin:0 0 5px 42px;">${coord.transport.time ? coord.transport.time + ' · ' : ''}toca para abrir com o trajeto preenchido:</div>`;
+                        stepsHtml += `<div style="display:flex; gap:8px; flex-wrap:wrap; margin:0 0 10px 42px;">`;
+                        rideApps.forEach(key => {
+                            const def = RIDE_APP_DEFS[key];
+                            const scheme = def.buildScheme(origin, dest);
+                            stepsHtml += `<button class="ride-app-btn" style="--ride-color:${def.color}" onclick="tryOpenRideApp('${scheme.replace(/'/g, "\\'")}', '${key}')"><i class="fa-solid ${def.icon}"></i> ${def.label}</button>`;
+                        });
+                        stepsHtml += `</div>`;
+                        if (coord.transport.note) stepsHtml += `<div style="font-size:10.5px; color:var(--ink-soft); margin:-4px 0 14px 42px;">${coord.transport.note}</div>`;
+                    } else {
+                        const dirUrl = buildDirectionsUrl(coord.lat, coord.lng, coord.name + ' ' + day.location, destLat, destLng, destText);
+                        stepsHtml += `
+                            <a class="transit-pill shadow-sm" href="${dirUrl}" target="_blank" rel="noopener noreferrer" title="Navegar">
+                                <i class="fa-solid ${coord.transport.icon}"></i>
+                                <span>${coord.transport.type}</span> <span style="opacity:0.5;">•</span> <span>${coord.transport.time}</span>
+                            </a>
+                            ${coord.transport.note ? `<div style="font-size:10.5px; color:var(--ink-soft); margin:-4px 0 14px 42px;">${coord.transport.note}</div>` : `<div style="margin-bottom:12px;"></div>`}`;
+                    }
                 }
             });
 
             const customs = loadJSON(pKey('tailandia_paragens_' + day.id), []);
             customs.forEach(c => {
                 const isDone = !!c.done;
-                const openUrl = c.link || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.name + ' ' + day.location)}`;
+                const openUrl = buildPlaceUrl(c.name, day.location, NaN, NaN, c.link);
                 stepsHtml += `
                     <div class="step-row ${isDone ? 'done' : ''}" style="display:flex; align-items:flex-start; gap:10px; margin-bottom:8px;">
                         <div class="step-dot" style="background:var(--gold);"><i class="fa-solid fa-plus" style="font-size:10px;"></i></div>
-                        <div class="step-card" style="flex:1;" onclick="window.open('${openUrl}', '_blank')">
+                        <a class="step-card" style="flex:1;" href="${openUrl}" target="_blank" rel="noopener noreferrer">
                             <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
                                 <h4 style="font-weight:700; font-size:13.5px; margin:0; color:var(--ink);">${c.name}<span class="custom-tag">Teu</span></h4>
                             </div>
                             ${c.note ? `<p style="font-size:12px; color:var(--ink-soft); margin:4px 0 0;">${c.note}</p>` : ''}
-                        </div>
+                        </a>
                         <div style="display:flex; flex-direction:column; gap:6px; flex-shrink:0;">
                             <div class="note-btn" onclick="event.stopPropagation(); deleteCustomStop('${day.id}', '${c.id}')" title="Remover"><i class="fa-solid fa-trash"></i></div>
                             <div class="visit-check ${isDone ? 'checked' : ''}" onclick="event.stopPropagation(); toggleCustomStop('${day.id}', '${c.id}')"><i class="fa-solid fa-check"></i></div>
@@ -1682,3 +1779,4 @@
     </script>
 </body>
 </html>
+

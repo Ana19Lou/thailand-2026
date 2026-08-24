@@ -153,8 +153,9 @@
             padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -10px 30px rgba(0,0,0,0.25); }
         .sheet.open { transform: translateY(0); animation: sheetUp 0.28s cubic-bezier(.22,.68,.36,1); }
         .sheet-handle { width: 40px; height: 4px; background: var(--line); border-radius: 99px; margin: 10px auto 4px; }
-        .sheet-tabs { display:flex; gap:6px; padding: 8px 16px 4px; }
-        .sheet-tab { flex:1; text-align:center; font-size:11.5px; font-weight:700; padding:9px 6px; border-radius:12px; background: var(--bg); color: var(--ink-soft); cursor:pointer; border:1px solid var(--line); }
+        .sheet-tabs { display:flex; gap:6px; padding: 8px 16px 4px; overflow-x:auto; scrollbar-width:none; }
+        .sheet-tabs::-webkit-scrollbar { display:none; }
+        .sheet-tab { flex: 0 0 auto; min-width: 78px; text-align:center; font-size:11.5px; font-weight:700; padding:9px 10px; border-radius:12px; background: var(--bg); color: var(--ink-soft); cursor:pointer; border:1px solid var(--line); white-space:nowrap; }
         .sheet-tab.active { background: var(--jade); color:#fff; border-color: var(--jade); }
         .sheet-body { padding: 14px 18px 24px; overflow-y: auto; }
         .sheet-pane { display:none; }
@@ -311,6 +312,33 @@
         /* Nearest-stop highlight */
         @keyframes nearestPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(201,162,39,0.5); } 50% { box-shadow: 0 0 0 8px rgba(201,162,39,0); } }
         .step-row.nearest-highlight .step-card { border-color: var(--gold); animation: nearestPulse 1.1s ease-out 3; }
+
+        /* Nearby button + list */
+        .nearby-btn {
+            position: absolute; top: calc(72px + env(safe-area-inset-top)); left: 16px; z-index: 25;
+            display:flex; align-items:center; gap:7px; height: 38px; padding: 0 14px; border-radius: 99px; border: none;
+            background: var(--surface); color: var(--jade); font-size: 12px; font-weight:700;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2); cursor:pointer;
+        }
+        .nearby-btn:active { transform: scale(0.95); }
+        .nearby-btn.loading i { animation: spin 0.8s linear infinite; }
+        .nearby-item { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--line); text-decoration:none; color:inherit; }
+        .nearby-item:last-child { border-bottom:none; }
+        .nearby-item .n-icon { width:36px; height:36px; border-radius:50%; background:var(--bg); display:flex; align-items:center; justify-content:center; color:var(--jade); flex-shrink:0; }
+        .nearby-item .n-main { flex:1; min-width:0; }
+        .nearby-item .n-name { font-size:13px; font-weight:700; color:var(--ink); }
+        .nearby-item .n-cat { font-size:10.5px; color:var(--ink-soft); text-transform:capitalize; }
+        .nearby-item .n-dist { font-size:11px; font-weight:700; color:var(--gold); flex-shrink:0; }
+
+        /* Translator */
+        .translate-dir-row { display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:12px; }
+        .translate-lang-pill { flex:1; text-align:center; background:var(--bg); border-radius:12px; padding:9px 6px; font-size:12px; font-weight:700; color:var(--ink); }
+        .translate-box { position:relative; background:var(--bg); border-radius:14px; padding:12px; margin-bottom:8px; display:flex; align-items:flex-end; gap:8px; }
+        .translate-textarea { flex:1; border:none; background:transparent; resize:vertical; min-height:60px; font-size:14px; font-family:'Inter',sans-serif; color:var(--ink); outline:none; }
+        .translate-output { flex:1; font-size:15px; font-weight:600; color:var(--jade); min-height:24px; }
+        .mic-btn { width:34px; height:34px; border-radius:50%; border:none; background:var(--jade); color:#fff; flex-shrink:0; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+        .mic-btn.recording { background: var(--danger); animation: nearestPulse 1s ease-out infinite; }
+        .mic-btn:disabled { background: var(--line); color: var(--ink-soft); cursor:not-allowed; }
     </style>
 </head>
 <body>
@@ -336,6 +364,7 @@
         </header>
         <div id="map"></div>
         <button class="locate-btn" id="locate-btn" onclick="locateMe()" title="A minha localização"><i class="fa-solid fa-location-crosshairs"></i></button>
+        <button class="nearby-btn" id="nearby-btn" onclick="findNearbyPlaces()" title="Sítios perto de ti"><i class="fa-solid fa-compass"></i> <span>Perto de ti</span></button>
         <div class="content-area" id="content-container">
             <div style="padding:22px 18px 8px;">
                 <div class="skeleton" style="height:110px; border-radius:16px; margin-bottom:14px;"></div>
@@ -365,6 +394,7 @@
                 <div class="sheet-tab" data-pane="pane-info" onclick="switchPane(this)"><i class="fa-solid fa-triangle-exclamation"></i> Info</div>
                 <div class="sheet-tab" data-pane="pane-memories" onclick="switchPane(this)"><i class="fa-solid fa-images"></i> Memórias</div>
                 <div class="sheet-tab" data-pane="pane-phrases" onclick="switchPane(this)"><i class="fa-solid fa-language"></i> Frases</div>
+                <div class="sheet-tab" data-pane="pane-translate" onclick="switchPane(this)"><i class="fa-solid fa-comments"></i> Tradutor</div>
             </div>
             <div class="sheet-body">
                 <div class="sheet-pane active" id="pane-packing">
@@ -473,6 +503,30 @@
                     <p style="font-size:10.5px; color:var(--ink-soft); margin:6px 0 12px;">Pronúncia aproximada — o tailandês é uma língua tonal, por isso a entoação conta mais do que estas letras conseguem mostrar.</p>
                     <div id="phrases-list"></div>
                 </div>
+                <div class="sheet-pane" id="pane-translate">
+                    <div class="pane-header">
+                        <h3><i class="fa-solid fa-comments" style="color:var(--gold); margin-right:6px;"></i>Tradutor ao vivo</h3>
+                    </div>
+                    <p style="font-size:10.5px; color:var(--ink-soft); margin:-4px 0 12px;"><i class="fa-solid fa-wifi"></i> Precisa de ligação à internet.</p>
+
+                    <div class="translate-dir-row">
+                        <div class="translate-lang-pill" id="translate-lang-from">🇵🇹 Português</div>
+                        <button class="swap-btn" onclick="swapTranslateDirection()" title="Trocar sentido"><i class="fa-solid fa-arrow-right-arrow-left"></i></button>
+                        <div class="translate-lang-pill" id="translate-lang-to">🇹🇭 Tailandês</div>
+                    </div>
+
+                    <div class="translate-box">
+                        <textarea id="translate-input" class="translate-textarea" placeholder="Escreve aqui..."></textarea>
+                        <button class="mic-btn" id="translate-mic-btn" onclick="toggleMic()" title="Ditar por voz"><i class="fa-solid fa-microphone"></i></button>
+                    </div>
+                    <button class="note-save-btn" style="width:100%; margin:10px 0; padding:11px;" onclick="doTranslate()"><i class="fa-solid fa-language"></i> Traduzir</button>
+
+                    <div class="translate-box" id="translate-output-box" style="display:none;">
+                        <div id="translate-output" class="translate-output"></div>
+                        <button class="mic-btn" onclick="speakTranslation()" title="Ouvir"><i class="fa-solid fa-volume-high"></i></button>
+                    </div>
+                    <p id="translate-status" style="font-size:11px; color:var(--ink-soft); text-align:center; margin-top:8px;"></p>
+                </div>
             </div>
         </div>
 
@@ -525,6 +579,15 @@
                     <button class="note-remove-btn" onclick="closeCustomStopSheet()"><i class="fa-solid fa-xmark"></i> Cancelar</button>
                     <button class="note-save-btn" onclick="saveCustomStop()"><i class="fa-solid fa-check"></i> Adicionar</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Nearby places sheet -->
+        <div class="sheet" id="nearby-sheet" style="z-index:96;">
+            <div class="sheet-handle"></div>
+            <div class="note-sheet-body">
+                <h3 class="note-sheet-title"><i class="fa-solid fa-compass" style="color:var(--gold); margin-right:6px;"></i>Perto de ti agora</h3>
+                <div id="nearby-list"></div>
             </div>
         </div>
 
@@ -596,6 +659,8 @@
             renderUserRows();
             updateWorldClock();
             renderPhrases('');
+            updateTranslateLangLabels();
+            initTranslatorMicAvailability();
             const phraseSearchEl = document.getElementById('phrase-search');
             if (phraseSearchEl) phraseSearchEl.oninput = () => renderPhrases(phraseSearchEl.value);
 
@@ -1273,6 +1338,7 @@
             if (document.getElementById('note-sheet').classList.contains('open')) { closeNoteSheet(); return; }
             if (document.getElementById('custom-stop-sheet').classList.contains('open')) { closeCustomStopSheet(); return; }
             if (document.getElementById('category-sheet').classList.contains('open')) { closeCategorySheet(); return; }
+            if (document.getElementById('nearby-sheet').classList.contains('open')) { closeNearbySheet(); return; }
             if (document.getElementById('user-sheet').classList.contains('open')) { if (!userPickerForced) closeUserSheet(); return; }
             closeSheet();
         }
@@ -1520,27 +1586,203 @@
 
         /* ---------- Map locate-me ---------- */
         let myLocationMarker = null;
+        let lastGeoPosition = null;
+
+        function placeMeOnMap(lat, lng) {
+            if (myLocationMarker) map.removeLayer(myLocationMarker);
+            const icon = L.divIcon({
+                className: 'dummy',
+                html: `<div style="width:18px;height:18px;border-radius:50%;background:#3B82C4;border:3px solid white;box-shadow:0 0 0 4px rgba(59,130,196,0.3);"></div>`,
+                iconSize: [18, 18], iconAnchor: [9, 9]
+            });
+            myLocationMarker = L.marker([lat, lng], { icon }).addTo(map);
+        }
+
         function locateMe() {
             const btn = document.getElementById('locate-btn');
-            if (!navigator.geolocation) { alert('O teu dispositivo não suporta localização.'); return; }
+            if (!navigator.geolocation) { showToast('O teu dispositivo não suporta localização.'); return; }
             btn.classList.add('locating');
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     btn.classList.remove('locating');
                     const { latitude, longitude } = pos.coords;
-                    if (myLocationMarker) map.removeLayer(myLocationMarker);
-                    const icon = L.divIcon({
-                        className: 'dummy',
-                        html: `<div style="width:18px;height:18px;border-radius:50%;background:#3B82C4;border:3px solid white;box-shadow:0 0 0 4px rgba(59,130,196,0.3);"></div>`,
-                        iconSize: [18, 18], iconAnchor: [9, 9]
-                    });
-                    myLocationMarker = L.marker([latitude, longitude], { icon }).addTo(map);
+                    lastGeoPosition = { lat: latitude, lng: longitude };
+                    placeMeOnMap(latitude, longitude);
                     map.setView([latitude, longitude], 14);
                     highlightNearestStop(latitude, longitude);
                 },
-                () => { btn.classList.remove('locating'); alert('Não foi possível obter a tua localização. Verifica as permissões.'); },
+                (err) => {
+                    btn.classList.remove('locating');
+                    if (err.code === 1) showToast('Permissão de localização recusada. Ativa-a nas definições do navegador.');
+                    else if (err.code === 3) showToast('Demorou demasiado a obter a localização. Tenta outra vez.');
+                    else showToast('Não foi possível obter a tua localização.');
+                },
                 { enableHighAccuracy: true, timeout: 8000 }
             );
+        }
+
+        /* ---------- Nearby places (real POI discovery around current location) ---------- */
+        const NEARBY_CAT_ICONS = { restaurant: 'fa-utensils', cafe: 'fa-mug-hot', bar: 'fa-martini-glass', fast_food: 'fa-burger', attraction: 'fa-camera', viewpoint: 'fa-mountain-sun', museum: 'fa-landmark', gallery: 'fa-palette' };
+        const NEARBY_CAT_LABELS = { restaurant: 'Restaurante', cafe: 'Café', bar: 'Bar', fast_food: 'Comida rápida', attraction: 'Atração', viewpoint: 'Miradouro', museum: 'Museu', gallery: 'Galeria' };
+
+        function findNearbyPlaces() {
+            const btn = document.getElementById('nearby-btn');
+            if (!navigator.geolocation) { showToast('O teu dispositivo não suporta localização.'); return; }
+            btn.classList.add('loading');
+            navigator.geolocation.getCurrentPosition(
+                async (pos) => {
+                    const { latitude, longitude } = pos.coords;
+                    lastGeoPosition = { lat: latitude, lng: longitude };
+                    placeMeOnMap(latitude, longitude);
+                    map.setView([latitude, longitude], 15);
+                    highlightNearestStop(latitude, longitude);
+                    await searchNearbyPOIs(latitude, longitude);
+                    btn.classList.remove('loading');
+                },
+                (err) => {
+                    btn.classList.remove('loading');
+                    if (err.code === 1) showToast('Permissão de localização recusada. Ativa-a nas definições do navegador.');
+                    else showToast('Não foi possível obter a tua localização.');
+                },
+                { enableHighAccuracy: true, timeout: 8000 }
+            );
+        }
+
+        async function searchNearbyPOIs(lat, lng) {
+            openNearbySheet();
+            document.getElementById('nearby-list').innerHTML = '<p style="font-size:12px;color:var(--ink-soft);text-align:center;padding:24px 0;"><i class="fa-solid fa-spinner fa-spin"></i> A procurar sítios perto de ti...</p>';
+            const query = `[out:json][timeout:15];(node["amenity"~"restaurant|cafe|bar|fast_food"](around:900,${lat},${lng});node["tourism"~"attraction|viewpoint|museum|gallery"](around:900,${lat},${lng}););out center 25;`;
+            try {
+                const res = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: query });
+                if (!res.ok) throw new Error('overpass failed');
+                const data = await res.json();
+                const results = (data.elements || [])
+                    .filter(el => el.tags && el.tags.name)
+                    .map(el => {
+                        const elLat = el.lat != null ? el.lat : (el.center && el.center.lat);
+                        const elLng = el.lon != null ? el.lon : (el.center && el.center.lon);
+                        const dist = haversineKm(lat, lng, elLat, elLng);
+                        const cat = el.tags.amenity || el.tags.tourism || 'local';
+                        return { name: el.tags.name, cat, dist, lat: elLat, lng: elLng };
+                    })
+                    .sort((a, b) => a.dist - b.dist)
+                    .slice(0, 12);
+                renderNearbyList(results);
+            } catch (e) {
+                document.getElementById('nearby-list').innerHTML = '<p style="font-size:12px;color:var(--ink-soft);text-align:center;padding:24px 0;">Não foi possível procurar agora — tenta de novo daqui a pouco.</p>';
+            }
+        }
+        function renderNearbyList(results) {
+            const wrap = document.getElementById('nearby-list');
+            if (results.length === 0) { wrap.innerHTML = '<p style="font-size:12px;color:var(--ink-soft);text-align:center;padding:24px 0;">Não encontrámos nada perto de ti agora.</p>'; return; }
+            wrap.innerHTML = results.map(r => {
+                const distText = r.dist < 1 ? `${Math.round(r.dist * 1000)} m` : `${r.dist.toFixed(1)} km`;
+                const url = `https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lng}`;
+                return `<a class="nearby-item" href="${url}" target="_blank" rel="noopener noreferrer">
+                    <div class="n-icon"><i class="fa-solid ${NEARBY_CAT_ICONS[r.cat] || 'fa-location-dot'}"></i></div>
+                    <div class="n-main"><div class="n-name">${r.name}</div><div class="n-cat">${NEARBY_CAT_LABELS[r.cat] || r.cat}</div></div>
+                    <div class="n-dist">${distText}</div>
+                </a>`;
+            }).join('');
+        }
+        function openNearbySheet() {
+            document.getElementById('sheet-overlay').classList.add('open');
+            document.getElementById('nearby-sheet').classList.add('open');
+        }
+        function closeNearbySheet() {
+            document.getElementById('nearby-sheet').classList.remove('open');
+            document.getElementById('sheet-overlay').classList.remove('open');
+        }
+
+        /* ---------- Live translator ---------- */
+        let translateDirection = 'pt-th';
+        let lastTranslation = '';
+        let lastTranslationLang = 'th';
+        let recognizer = null;
+        let isRecording = false;
+
+        function updateTranslateLangLabels() {
+            const fromEl = document.getElementById('translate-lang-from');
+            const toEl = document.getElementById('translate-lang-to');
+            if (!fromEl) return;
+            if (translateDirection === 'pt-th') { fromEl.textContent = '🇵🇹 Português'; toEl.textContent = '🇹🇭 Tailandês'; }
+            else { fromEl.textContent = '🇹🇭 Tailandês'; toEl.textContent = '🇵🇹 Português'; }
+        }
+        function swapTranslateDirection() {
+            translateDirection = translateDirection === 'pt-th' ? 'th-pt' : 'pt-th';
+            updateTranslateLangLabels();
+            document.getElementById('translate-input').value = '';
+            document.getElementById('translate-output-box').style.display = 'none';
+            document.getElementById('translate-status').textContent = '';
+        }
+        async function translateViaGoogle(text, from, to) {
+            const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${from}&tl=${to}&dt=t&q=${encodeURIComponent(text)}`);
+            if (!res.ok) throw new Error('google translate failed');
+            const data = await res.json();
+            return data[0].map(seg => seg[0]).join('');
+        }
+        async function translateViaMyMemory(text, from, to) {
+            const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${from}|${to}`);
+            if (!res.ok) throw new Error('mymemory failed');
+            const data = await res.json();
+            if (!data.responseData || !data.responseData.translatedText) throw new Error('no translation');
+            return data.responseData.translatedText;
+        }
+        async function doTranslate() {
+            const input = document.getElementById('translate-input').value.trim();
+            const status = document.getElementById('translate-status');
+            const outBox = document.getElementById('translate-output-box');
+            const outEl = document.getElementById('translate-output');
+            if (!input) return;
+            status.textContent = 'A traduzir...';
+            const [from, to] = translateDirection === 'pt-th' ? ['pt', 'th'] : ['th', 'pt'];
+            try {
+                let translated;
+                try { translated = await translateViaGoogle(input, from, to); }
+                catch (e) { translated = await translateViaMyMemory(input, from, to); }
+                outEl.textContent = translated;
+                outBox.style.display = 'flex';
+                status.textContent = '';
+                lastTranslation = translated;
+                lastTranslationLang = to;
+            } catch (e) {
+                status.textContent = 'Não foi possível traduzir agora — verifica a ligação.';
+            }
+        }
+        function speakTranslation() {
+            if (!lastTranslation) return;
+            if (!('speechSynthesis' in window)) { showToast('A leitura por voz não é suportada neste aparelho.'); return; }
+            const utter = new SpeechSynthesisUtterance(lastTranslation);
+            utter.lang = lastTranslationLang === 'th' ? 'th-TH' : 'pt-PT';
+            speechSynthesis.cancel();
+            speechSynthesis.speak(utter);
+        }
+        function toggleMic() {
+            const micBtn = document.getElementById('translate-mic-btn');
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRec) { showToast('Ditado por voz não suportado neste navegador (funciona no Chrome Android).'); return; }
+            if (isRecording) { recognizer && recognizer.stop(); return; }
+            recognizer = new SpeechRec();
+            recognizer.lang = translateDirection === 'pt-th' ? 'pt-PT' : 'th-TH';
+            recognizer.interimResults = false;
+            recognizer.maxAlternatives = 1;
+            recognizer.onstart = () => { isRecording = true; micBtn.classList.add('recording'); };
+            recognizer.onerror = () => { isRecording = false; micBtn.classList.remove('recording'); showToast('Não foi possível captar áudio.'); };
+            recognizer.onend = () => { isRecording = false; micBtn.classList.remove('recording'); };
+            recognizer.onresult = (event) => {
+                const text = event.results[0][0].transcript;
+                document.getElementById('translate-input').value = text;
+                doTranslate();
+            };
+            recognizer.start();
+        }
+        function initTranslatorMicAvailability() {
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const micBtn = document.getElementById('translate-mic-btn');
+            if (!SpeechRec && micBtn) {
+                micBtn.disabled = true;
+                micBtn.title = 'Não suportado neste navegador (funciona no Chrome Android)';
+            }
         }
 
         function highlightNearestStop(lat, lng) {
@@ -1968,4 +2210,3 @@
     </script>
 </body>
 </html>
-

@@ -288,7 +288,7 @@
         .memory-item .m-text { font-size: 12px; color: var(--ink-soft); font-style: italic; margin: 2px 0 0; }
 
         /* Ride-hailing app buttons */
-        .ride-app-btn { display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700; padding:8px 14px; border-radius:99px; border:none; cursor:pointer; color:#fff; background: var(--ride-color, var(--jade)); }
+        .ride-app-btn { display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:700; padding:8px 14px; border-radius:99px; border:none; cursor:pointer; color:#fff; background: var(--ride-color, var(--jade)); text-decoration:none; }
         .ride-app-btn:active { transform: scale(0.95); }
     </style>
 </head>
@@ -801,26 +801,24 @@
             return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
         }
 
-        /* ---------- Ride-hailing app deep links (best-effort) ---------- */
-        // These custom URL schemes and parameter names are not officially published by
-        // Bolt/Grab/Uber the way Google's Maps links are, so they're implemented on a
-        // best-effort basis from widely-used partner-integration patterns. Worst case if a
-        // param isn't honored, the app still opens to the right screen and you just confirm
-        // the addresses manually — it never fails to a broken page.
+        /* ---------- Ride-hailing app deep links ---------- */
+        // Uber publishes an official deep-link spec (m.uber.com/ul) that reliably pre-fills
+        // pickup/dropoff. Bolt and Grab do NOT publish an equivalent spec — there's no
+        // confirmed way to pre-fill their destination field from outside the app — so for
+        // those two we copy the address to the clipboard and open the app, so it's one paste
+        // instead of typing it out.
         const RIDE_APP_DEFS = {
             bolt: {
-                label: 'Bolt', icon: 'fa-bolt', color: '#34D07F',
-                buildScheme: (o, d) => `bolt://ride?pickup[latitude]=${o.lat}&pickup[longitude]=${o.lng}&pickup[address]=${encodeURIComponent(o.addr)}&destination[latitude]=${d.lat}&destination[longitude]=${d.lng}&destination[address]=${encodeURIComponent(d.addr)}`,
-                iosTerm: 'Bolt Request a Ride', androidTerm: 'Bolt taxi'
+                label: 'Bolt', icon: 'fa-bolt', color: '#34D07F', copyAssist: true,
+                buildScheme: (o, d) => `bolt://`,
             },
             grab: {
-                label: 'Grab', icon: 'fa-car-side', color: '#00B14F',
-                buildScheme: (o, d) => `grab://open?screenType=BOOKING&pickupLatitude=${o.lat}&pickupLongitude=${o.lng}&pickupAddress=${encodeURIComponent(o.addr)}&dropOffLatitude=${d.lat}&dropOffLongitude=${d.lng}&dropOffAddress=${encodeURIComponent(d.addr)}`,
-                iosTerm: 'Grab Superapp', androidTerm: 'Grab'
+                label: 'Grab', icon: 'fa-car-side', color: '#00B14F', copyAssist: true,
+                buildScheme: (o, d) => `grab://`,
             },
             uber: {
-                label: 'Uber', icon: 'fa-car', color: '#111111',
-                buildScheme: (o, d) => `uber://?action=setPickup&pickup[latitude]=${o.lat}&pickup[longitude]=${o.lng}&pickup[nickname]=${encodeURIComponent(o.addr)}&dropoff[latitude]=${d.lat}&dropoff[longitude]=${d.lng}&dropoff[nickname]=${encodeURIComponent(d.addr)}`,
+                label: 'Uber', icon: 'fa-car', color: '#111111', isUniversalLink: true,
+                buildScheme: (o, d) => `https://m.uber.com/ul/?action=setPickup&pickup[latitude]=${o.lat}&pickup[longitude]=${o.lng}&pickup[formatted_address]=${encodeURIComponent(o.addr)}&dropoff[latitude]=${d.lat}&dropoff[longitude]=${d.lng}&dropoff[formatted_address]=${encodeURIComponent(d.addr)}`,
                 iosTerm: 'Uber', androidTerm: 'Uber'
             }
         };
@@ -832,6 +830,19 @@
                 if (tokens.some(t => t.includes(key))) matched.push(key);
             });
             return matched;
+        }
+        function showToast(msg) {
+            let toast = document.getElementById('app-toast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'app-toast';
+                toast.style.cssText = 'position:absolute; left:50%; bottom:118px; transform:translateX(-50%); background:var(--jade-deep); color:#fff; padding:10px 18px; border-radius:99px; font-size:12px; font-weight:600; z-index:200; box-shadow:0 4px 14px rgba(0,0,0,0.35); max-width:85%; text-align:center;';
+                document.getElementById('app-root').appendChild(toast);
+            }
+            toast.textContent = msg;
+            toast.style.display = 'block';
+            clearTimeout(toast._hideTimeout);
+            toast._hideTimeout = setTimeout(() => { toast.style.display = 'none'; }, 2400);
         }
         function tryOpenRideApp(schemeUrl, appKey) {
             const def = RIDE_APP_DEFS[appKey];
@@ -850,6 +861,17 @@
                 document.removeEventListener('visibilitychange', markLeft);
                 if (!left) window.location.href = storeUrl;
             }, 1300);
+        }
+        function copyAndOpenRideApp(schemeUrl, appKey, address) {
+            const finish = () => {
+                showToast(`Endereço copiado — cola no destino: "${address}"`);
+                setTimeout(() => tryOpenRideApp(schemeUrl, appKey), 500);
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(address).then(finish).catch(finish);
+            } else {
+                finish();
+            }
         }
 
         function initMap() {
@@ -955,7 +977,12 @@
                         rideApps.forEach(key => {
                             const def = RIDE_APP_DEFS[key];
                             const scheme = def.buildScheme(origin, dest);
-                            stepsHtml += `<button class="ride-app-btn" style="--ride-color:${def.color}" onclick="tryOpenRideApp('${scheme.replace(/'/g, "\\'")}', '${key}')"><i class="fa-solid ${def.icon}"></i> ${def.label}</button>`;
+                            if (def.isUniversalLink) {
+                                stepsHtml += `<a class="ride-app-btn" style="--ride-color:${def.color}" href="${scheme}" target="_blank" rel="noopener noreferrer"><i class="fa-solid ${def.icon}"></i> ${def.label}</a>`;
+                            } else {
+                                const addrEsc = dest.addr.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                                stepsHtml += `<button class="ride-app-btn" style="--ride-color:${def.color}" onclick="copyAndOpenRideApp('${scheme}', '${key}', '${addrEsc}')"><i class="fa-solid ${def.icon}"></i> ${def.label}</button>`;
+                            }
                         });
                         stepsHtml += `</div>`;
                         if (coord.transport.note) stepsHtml += `<div style="font-size:10.5px; color:var(--ink-soft); margin:-4px 0 14px 42px;">${coord.transport.note}</div>`;
@@ -1779,4 +1806,3 @@
     </script>
 </body>
 </html>
-

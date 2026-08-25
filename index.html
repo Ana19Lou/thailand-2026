@@ -715,7 +715,12 @@
                     <i class="fa-solid fa-check check-mark"></i>
                 </div>`).join('');
         }
+        function closeAllSheets() {
+            document.querySelectorAll('.sheet').forEach(s => s.classList.remove('open'));
+            document.getElementById('sheet-overlay').classList.remove('open');
+        }
         function openUserSheet(forced) {
+            closeAllSheets();
             userPickerForced = !!forced;
             renderUserRows();
             document.getElementById('sheet-overlay').classList.add('open');
@@ -1315,6 +1320,7 @@
         let currentNoteKey = null;
 
         function openNoteSheet(dayId, idx, stopName) {
+            closeAllSheets();
             currentNoteKey = dayId + '_' + idx;
             const notes = loadJSON(pKey(STORAGE_NOTES_KEY), {});
             const existing = notes[currentNoteKey] || {};
@@ -1686,6 +1692,7 @@
             }).join('');
         }
         function openNearbySheet() {
+            closeAllSheets();
             document.getElementById('sheet-overlay').classList.add('open');
             document.getElementById('nearby-sheet').classList.add('open');
         }
@@ -1894,6 +1901,7 @@
         }
 
         function openSheet() {
+            closeAllSheets();
             document.getElementById('sheet-overlay').classList.add('open');
             document.getElementById('tools-sheet').classList.add('open');
             const activePane = document.querySelector('.sheet-tab.active');
@@ -1917,6 +1925,7 @@
         /* ---------- Custom stops ---------- */
         let currentCustomStopDay = null;
         function openCustomStopSheet(dayId) {
+            closeAllSheets();
             currentCustomStopDay = dayId;
             document.getElementById('custom-stop-name').value = '';
             document.getElementById('custom-stop-note').value = '';
@@ -2070,6 +2079,7 @@
         }
 
         function openCategorySheet() {
+            closeAllSheets();
             document.getElementById('new-cat-name').value = '';
             document.getElementById('new-cat-emoji').value = '';
             document.getElementById('sheet-overlay').classList.add('open');
@@ -2210,4 +2220,3 @@
     </script>
 </body>
 </html>
-

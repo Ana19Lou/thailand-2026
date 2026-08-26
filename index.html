@@ -153,7 +153,7 @@
             padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -10px 30px rgba(0,0,0,0.25); }
         .sheet.open { transform: translateY(0); animation: sheetUp 0.28s cubic-bezier(.22,.68,.36,1); }
         .sheet-handle { width: 40px; height: 4px; background: var(--line); border-radius: 99px; margin: 10px auto 4px; }
-        .sheet-tabs { display:flex; gap:6px; padding: 8px 16px 4px; overflow-x:auto; scrollbar-width:none; }
+        .sheet-tabs { display:flex; gap:6px; padding: 8px 16px 4px; overflow-x:auto; scrollbar-width:none; mask-image: linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%); -webkit-mask-image: linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%); }
         .sheet-tabs::-webkit-scrollbar { display:none; }
         .sheet-tab { flex: 0 0 auto; min-width: 82px; text-align:center; font-size:11.5px; font-weight:700; padding:9px 10px; border-radius:12px; background: var(--bg); color: var(--ink-soft); cursor:pointer; border:1px solid var(--line); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         .sheet-tab.active { background: var(--jade); color:#fff; border-color: var(--jade); }
@@ -951,7 +951,11 @@
             },
             grab: {
                 label: 'Grab', icon: 'fa-car-side', color: '#00B14F', copyAssist: true,
-                buildScheme: (o, d) => `grab://`,
+                // Grab doesn't publish an official custom URL scheme (confirmed — only Uber does).
+                // On Android, launching by package name via an intent:// URL is a documented,
+                // reliable mechanism that doesn't depend on guessing a scheme. On iOS there's no
+                // equivalent, so it falls back to the App Store search if the app doesn't open.
+                buildScheme: (o, d) => isIOS() ? `grab://` : `intent://#Intent;package=com.grabtaxi.passenger;end`,
             },
             uber: {
                 label: 'Uber', icon: 'fa-car', color: '#111111', isUniversalLink: true,
@@ -1823,25 +1827,44 @@
             return `há ${Math.round(hours / 24)}d`;
         }
 
-        const NEWS_PROXIES = [
-            (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-            (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`
-        ];
+        async function fetchNewsItems() {
+            // Primary: a purpose-built RSS-to-JSON service — more reliable for this exact use
+            // case than scraping raw XML through a generic CORS proxy.
+            try {
+                const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(NEWS_FEED_URL)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.status === 'ok' && Array.isArray(data.items) && data.items.length > 0) {
+                        return data.items.slice(0, 10).map(it => ({ title: it.title || '', link: it.link || '', pubDate: it.pubDate || '' })).filter(it => it.title && it.link);
+                    }
+                }
+            } catch (e) { /* fall through to raw-XML proxies below */ }
 
-        async function fetchNewsXml() {
+            // Fallback: fetch the raw XML through generic CORS proxies and parse it ourselves.
+            const proxies = [
+                (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+                (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`
+            ];
             let lastError = null;
-            for (const buildProxyUrl of NEWS_PROXIES) {
+            for (const buildProxyUrl of proxies) {
                 try {
                     const res = await fetch(buildProxyUrl(NEWS_FEED_URL));
                     if (!res.ok) throw new Error('proxy responded with ' + res.status);
                     const text = await res.text();
                     if (!text || !text.includes('<item')) throw new Error('empty or invalid feed');
-                    return text;
+                    const xml = new DOMParser().parseFromString(text, 'text/xml');
+                    const items = Array.from(xml.querySelectorAll('item')).slice(0, 10).map(item => ({
+                        title: item.querySelector('title')?.textContent || '',
+                        link: item.querySelector('link')?.textContent || '',
+                        pubDate: item.querySelector('pubDate')?.textContent || ''
+                    })).filter(it => it.title && it.link);
+                    if (items.length > 0) return items;
+                    throw new Error('no items parsed');
                 } catch (e) {
                     lastError = e;
                 }
             }
-            throw lastError || new Error('all proxies failed');
+            throw lastError || new Error('all news sources failed');
         }
 
         function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
@@ -1867,13 +1890,7 @@
             if (btn) btn.classList.add('spinning');
             if (!newsLoaded) wrap.innerHTML = '<p style="font-size:12px;color:var(--ink-soft);text-align:center;padding:20px 0;"><i class="fa-solid fa-spinner fa-spin"></i> A carregar notícias...</p>';
             try {
-                const xmlText = await fetchNewsXml();
-                const xml = new DOMParser().parseFromString(xmlText, 'text/xml');
-                const items = Array.from(xml.querySelectorAll('item')).slice(0, 10).map(item => ({
-                    title: item.querySelector('title')?.textContent || '',
-                    link: item.querySelector('link')?.textContent || '',
-                    pubDate: item.querySelector('pubDate')?.textContent || ''
-                })).filter(it => it.title && it.link);
+                const items = await fetchNewsItems();
                 if (items.length === 0) throw new Error('no items');
 
                 const translated = await translateHeadlines(items);
@@ -2029,6 +2046,7 @@
             document.querySelectorAll('.sheet-pane').forEach(p => p.classList.remove('active'));
             tabEl.classList.add('active');
             document.getElementById(tabEl.dataset.pane).classList.add('active');
+            tabEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
             if (tabEl.dataset.pane === 'pane-currency') fetchExchangeRate(false);
             if (tabEl.dataset.pane === 'pane-memories') renderMemories();
             if (tabEl.dataset.pane === 'pane-phrases') renderPhrases(document.getElementById('phrase-search').value);

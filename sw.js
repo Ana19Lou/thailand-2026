@@ -1,6 +1,6 @@
-const CACHE_NAME = 'tailandia-2026-v1';
+const CACHE_NAME = 'tailandia-2026-v2';
 const APP_SHELL = [
-  './tailandia-2026.html',
+  './',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
@@ -29,7 +29,7 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
 
-  const isAppPage = req.mode === 'navigate' || req.url.endsWith('tailandia-2026.html');
+  const isAppPage = req.mode === 'navigate';
 
   if (isAppPage) {
     event.respondWith(
@@ -39,7 +39,7 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
           return res;
         })
-        .catch(() => caches.match(req).then((cached) => cached || caches.match('./tailandia-2026.html')))
+        .catch(() => caches.match(req).then((cached) => cached || caches.match('./')))
     );
     return;
   }

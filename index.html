@@ -339,6 +339,13 @@
         .mic-btn { width:34px; height:34px; border-radius:50%; border:none; background:var(--jade); color:#fff; flex-shrink:0; display:flex; align-items:center; justify-content:center; cursor:pointer; }
         .mic-btn.recording { background: var(--danger); animation: nearestPulse 1s ease-out infinite; }
         .mic-btn:disabled { background: var(--line); color: var(--ink-soft); cursor:not-allowed; }
+
+        /* News */
+        .news-item { display:block; padding:11px 0; border-bottom:1px solid var(--line); text-decoration:none; color:inherit; }
+        .news-item:last-child { border-bottom:none; }
+        .news-title-pt { font-size:13.5px; font-weight:700; color:var(--ink); line-height:1.35; }
+        .news-title-en { font-size:11px; color:var(--ink-soft); font-style:italic; margin-top:3px; }
+        .news-meta { font-size:10px; color:var(--jade); font-weight:700; text-transform:uppercase; letter-spacing:0.03em; margin-top:4px; }
     </style>
 </head>
 <body>
@@ -395,6 +402,7 @@
                 <div class="sheet-tab" data-pane="pane-memories" onclick="switchPane(this)"><i class="fa-solid fa-images"></i> Memórias</div>
                 <div class="sheet-tab" data-pane="pane-phrases" onclick="switchPane(this)"><i class="fa-solid fa-book-open"></i> Frases</div>
                 <div class="sheet-tab" data-pane="pane-translate" onclick="switchPane(this)"><i class="fa-solid fa-comments"></i> Tradutor</div>
+                <div class="sheet-tab" data-pane="pane-news" onclick="switchPane(this)"><i class="fa-solid fa-newspaper"></i> Notícias</div>
             </div>
             <div class="sheet-body">
                 <div class="sheet-pane active" id="pane-packing">
@@ -526,6 +534,14 @@
                         <button class="mic-btn" onclick="speakTranslation()" title="Ouvir"><i class="fa-solid fa-volume-high"></i></button>
                     </div>
                     <p id="translate-status" style="font-size:11px; color:var(--ink-soft); text-align:center; margin-top:8px;"></p>
+                </div>
+                <div class="sheet-pane" id="pane-news">
+                    <div class="pane-header">
+                        <h3><i class="fa-solid fa-newspaper" style="color:var(--gold); margin-right:6px;"></i>Notícias da Tailândia</h3>
+                        <button class="refresh-btn" id="news-refresh-btn" onclick="loadNews(true)"><i class="fa-solid fa-rotate"></i></button>
+                    </div>
+                    <p style="font-size:10.5px; color:var(--ink-soft); margin:-6px 0 12px;"><i class="fa-solid fa-wifi"></i> Fonte: Bangkok Post · títulos traduzidos automaticamente · precisa de ligação.</p>
+                    <div id="news-list"></div>
                 </div>
             </div>
         </div>
@@ -1792,6 +1808,72 @@
             }
         }
 
+        /* ---------- News ---------- */
+        const NEWS_FEED_URL = 'https://www.bangkokpost.com/rss/data/topstories.xml';
+        const STORAGE_NEWS_CACHE_KEY = 'tailandia_noticias_cache';
+        let newsLoaded = false;
+
+        function timeAgo(dateStr) {
+            const date = new Date(dateStr);
+            if (isNaN(date)) return '';
+            const mins = Math.round((Date.now() - date.getTime()) / 60000);
+            if (mins < 60) return `há ${mins} min`;
+            const hours = Math.round(mins / 60);
+            if (hours < 24) return `há ${hours}h`;
+            return `há ${Math.round(hours / 24)}d`;
+        }
+
+        async function loadNews(manual) {
+            const btn = document.getElementById('news-refresh-btn');
+            const wrap = document.getElementById('news-list');
+            if (btn) btn.classList.add('spinning');
+            if (!newsLoaded) wrap.innerHTML = '<p style="font-size:12px;color:var(--ink-soft);text-align:center;padding:20px 0;"><i class="fa-solid fa-spinner fa-spin"></i> A carregar notícias...</p>';
+            try {
+                const proxied = `https://api.allorigins.win/raw?url=${encodeURIComponent(NEWS_FEED_URL)}`;
+                const res = await fetch(proxied);
+                if (!res.ok) throw new Error('feed fetch failed');
+                const xmlText = await res.text();
+                const xml = new DOMParser().parseFromString(xmlText, 'text/xml');
+                const items = Array.from(xml.querySelectorAll('item')).slice(0, 10).map(item => ({
+                    title: item.querySelector('title')?.textContent || '',
+                    link: item.querySelector('link')?.textContent || '',
+                    pubDate: item.querySelector('pubDate')?.textContent || ''
+                })).filter(it => it.title && it.link);
+                if (items.length === 0) throw new Error('no items');
+
+                // Translate headlines to Portuguese (best effort, falls back to English on failure)
+                const translated = await Promise.all(items.map(async it => {
+                    try { return { ...it, titlePt: await translateViaGoogle(it.title, 'en', 'pt') }; }
+                    catch (e) {
+                        try { return { ...it, titlePt: await translateViaMyMemory(it.title, 'en', 'pt') }; }
+                        catch (e2) { return { ...it, titlePt: null }; }
+                    }
+                }));
+                saveJSON(STORAGE_NEWS_CACHE_KEY, { items: translated, time: Date.now() });
+                renderNews(translated);
+                newsLoaded = true;
+            } catch (e) {
+                const cached = loadJSON(STORAGE_NEWS_CACHE_KEY, null);
+                if (cached) {
+                    renderNews(cached.items, cached.time);
+                } else {
+                    wrap.innerHTML = '<p style="font-size:12px;color:var(--ink-soft);text-align:center;padding:20px 0;">Não foi possível carregar notícias agora. Tenta de novo mais tarde.</p>';
+                }
+            } finally {
+                if (btn) btn.classList.remove('spinning');
+            }
+        }
+        function renderNews(items, cachedTime) {
+            const wrap = document.getElementById('news-list');
+            const staleNote = cachedTime ? `<p style="font-size:10.5px;color:var(--ink-soft);text-align:center;margin-bottom:8px;">Sem ligação — a mostrar a última versão guardada.</p>` : '';
+            wrap.innerHTML = staleNote + items.map(it => `
+                <a class="news-item" href="${it.link}" target="_blank" rel="noopener noreferrer">
+                    <div class="news-title-pt">${it.titlePt || it.title}</div>
+                    ${it.titlePt ? `<div class="news-title-en">${it.title}</div>` : ''}
+                    <div class="news-meta">Bangkok Post ${it.pubDate ? '· ' + timeAgo(it.pubDate) : ''}</div>
+                </a>`).join('');
+        }
+
         function highlightNearestStop(lat, lng) {
             let best = null;
             globalItinerary.forEach((day, dayIdx) => {
@@ -1920,6 +2002,7 @@
             if (tabEl.dataset.pane === 'pane-memories') renderMemories();
             if (tabEl.dataset.pane === 'pane-phrases') renderPhrases(document.getElementById('phrase-search').value);
             if (tabEl.dataset.pane === 'pane-info') updateWorldClock();
+            if (tabEl.dataset.pane === 'pane-news' && !newsLoaded) loadNews(false);
         }
 
         /* ---------- Custom stops ---------- */

@@ -1823,16 +1823,51 @@
             return `há ${Math.round(hours / 24)}d`;
         }
 
+        const NEWS_PROXIES = [
+            (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+            (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`
+        ];
+
+        async function fetchNewsXml() {
+            let lastError = null;
+            for (const buildProxyUrl of NEWS_PROXIES) {
+                try {
+                    const res = await fetch(buildProxyUrl(NEWS_FEED_URL));
+                    if (!res.ok) throw new Error('proxy responded with ' + res.status);
+                    const text = await res.text();
+                    if (!text || !text.includes('<item')) throw new Error('empty or invalid feed');
+                    return text;
+                } catch (e) {
+                    lastError = e;
+                }
+            }
+            throw lastError || new Error('all proxies failed');
+        }
+
+        function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+        async function translateHeadlines(items) {
+            const results = [];
+            for (const it of items) {
+                let titlePt = null;
+                try { titlePt = await translateViaGoogle(it.title, 'en', 'pt'); }
+                catch (e) {
+                    try { titlePt = await translateViaMyMemory(it.title, 'en', 'pt'); }
+                    catch (e2) { titlePt = null; }
+                }
+                results.push({ ...it, titlePt });
+                await sleep(120); // throttle: gentler on the free translation endpoint than firing all at once
+            }
+            return results;
+        }
+
         async function loadNews(manual) {
             const btn = document.getElementById('news-refresh-btn');
             const wrap = document.getElementById('news-list');
             if (btn) btn.classList.add('spinning');
             if (!newsLoaded) wrap.innerHTML = '<p style="font-size:12px;color:var(--ink-soft);text-align:center;padding:20px 0;"><i class="fa-solid fa-spinner fa-spin"></i> A carregar notícias...</p>';
             try {
-                const proxied = `https://api.allorigins.win/raw?url=${encodeURIComponent(NEWS_FEED_URL)}`;
-                const res = await fetch(proxied);
-                if (!res.ok) throw new Error('feed fetch failed');
-                const xmlText = await res.text();
+                const xmlText = await fetchNewsXml();
                 const xml = new DOMParser().parseFromString(xmlText, 'text/xml');
                 const items = Array.from(xml.querySelectorAll('item')).slice(0, 10).map(item => ({
                     title: item.querySelector('title')?.textContent || '',
@@ -1841,23 +1876,19 @@
                 })).filter(it => it.title && it.link);
                 if (items.length === 0) throw new Error('no items');
 
-                // Translate headlines to Portuguese (best effort, falls back to English on failure)
-                const translated = await Promise.all(items.map(async it => {
-                    try { return { ...it, titlePt: await translateViaGoogle(it.title, 'en', 'pt') }; }
-                    catch (e) {
-                        try { return { ...it, titlePt: await translateViaMyMemory(it.title, 'en', 'pt') }; }
-                        catch (e2) { return { ...it, titlePt: null }; }
-                    }
-                }));
+                const translated = await translateHeadlines(items);
                 saveJSON(STORAGE_NEWS_CACHE_KEY, { items: translated, time: Date.now() });
                 renderNews(translated);
                 newsLoaded = true;
+                if (manual) showToast('📰 Notícias atualizadas');
             } catch (e) {
                 const cached = loadJSON(STORAGE_NEWS_CACHE_KEY, null);
                 if (cached) {
                     renderNews(cached.items, cached.time);
+                    if (manual) showToast('Não foi possível atualizar agora — a mostrar a última versão guardada.');
                 } else {
                     wrap.innerHTML = '<p style="font-size:12px;color:var(--ink-soft);text-align:center;padding:20px 0;">Não foi possível carregar notícias agora. Tenta de novo mais tarde.</p>';
+                    if (manual) showToast('Não foi possível carregar notícias agora.');
                 }
             } finally {
                 if (btn) btn.classList.remove('spinning');

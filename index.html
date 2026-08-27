@@ -686,7 +686,18 @@
                 updateUserBadge();
                 await startAppForUser();
             } else {
-                openUserSheet(true);
+                // Recovery: if the "which user" pointer got lost but one user's actual data
+                // (packing list, visited stops, etc.) is still on this device, resume silently
+                // as that user instead of forcing a re-pick.
+                const usersWithData = USERS.filter(u => localStorage.getItem('tailandia_visitados__' + u) !== null);
+                if (usersWithData.length === 1) {
+                    currentUser = usersWithData[0];
+                    localStorage.setItem(STORAGE_USER_KEY, currentUser);
+                    updateUserBadge();
+                    await startAppForUser();
+                } else {
+                    openUserSheet(true);
+                }
             }
         }
 

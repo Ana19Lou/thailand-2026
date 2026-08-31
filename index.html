@@ -668,7 +668,10 @@
         }
         function saveJSON(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {} }
 
+        let appBooted = false;
         async function bootApp() {
+            if (appBooted) return;
+            appBooted = true;
             initTheme();
             initMap();
             initCurrency();
@@ -747,6 +750,11 @@
             document.getElementById('sheet-overlay').classList.remove('open');
         }
         function openUserSheet(forced) {
+            if (forced && currentUser) {
+                // We already have a working session for a real user — never force a blocking
+                // re-pick on top of it. If something unexpectedly calls this again, it's a no-op.
+                return;
+            }
             closeAllSheets();
             userPickerForced = !!forced;
             renderUserRows();

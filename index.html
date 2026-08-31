@@ -569,6 +569,7 @@
             <div class="sheet-handle"></div>
             <div class="note-sheet-body">
                 <h3 class="note-sheet-title">Quem está a usar a app?</h3>
+                <p style="font-size:9px; color:var(--ink-soft); opacity:0.6; margin:-8px 0 8px;">build 2026-08-31-c</p>
                 <p style="font-size:12px; color:var(--ink-soft); margin:-6px 0 14px;">Cada pessoa guarda a sua própria mala, gastos, notas e progresso neste equipamento.</p>
                 <div id="user-rows"></div>
             </div>
@@ -672,6 +673,7 @@
         async function bootApp() {
             if (appBooted) return;
             appBooted = true;
+            console.log('Tailândia app — build 2026-08-31-c');
             initTheme();
             initMap();
             initCurrency();

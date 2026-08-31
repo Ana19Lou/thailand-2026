@@ -359,7 +359,7 @@
                 <div><span class="trip-status-line" id="trip-status-line" style="display:none;"></span></div>
             </div>
             <div class="header-right">
-                <button class="user-badge" id="user-badge" onclick="openUserSheet(false)" style="background:var(--jade);" title="Trocar utilizador">?</button>
+                <button class="user-badge" id="user-badge" onclick="openUserSheet(false, 'badge-tap')" style="background:var(--jade);" title="Trocar utilizador">?</button>
                 <button class="icon-btn" id="theme-toggle" title="Alternar tema"><i class="fa-solid fa-moon"></i></button>
                 <div class="day-ring" id="day-ring" style="--pct:0;" onclick="openSheet()">
                     <div class="day-ring-inner">
@@ -569,7 +569,7 @@
             <div class="sheet-handle"></div>
             <div class="note-sheet-body">
                 <h3 class="note-sheet-title">Quem está a usar a app?</h3>
-                <p style="font-size:9px; color:var(--ink-soft); opacity:0.6; margin:-8px 0 8px;">build 2026-08-31-c</p>
+                <p style="font-size:9px; color:var(--ink-soft); opacity:0.6; margin:-8px 0 8px;">build 2026-08-31-debug1</p>
                 <p style="font-size:12px; color:var(--ink-soft); margin:-6px 0 14px;">Cada pessoa guarda a sua própria mala, gastos, notas e progresso neste equipamento.</p>
                 <div id="user-rows"></div>
             </div>
@@ -673,7 +673,8 @@
         async function bootApp() {
             if (appBooted) return;
             appBooted = true;
-            console.log('Tailândia app — build 2026-08-31-c');
+            console.log('Tailândia app — build 2026-08-31-debug1');
+            debugLog('bootApp() a arrancar');
             initTheme();
             initMap();
             initCurrency();
@@ -701,7 +702,7 @@
                     updateUserBadge();
                     await startAppForUser();
                 } else {
-                    openUserSheet(true);
+                    openUserSheet(true, 'boot:no-saved-user');
                 }
             }
         }
@@ -751,12 +752,28 @@
             document.querySelectorAll('.sheet').forEach(s => s.classList.remove('open'));
             document.getElementById('sheet-overlay').classList.remove('open');
         }
-        function openUserSheet(forced) {
+        function debugLog(msg) {
+            let panel = document.getElementById('debug-panel');
+            if (!panel) {
+                panel = document.createElement('div');
+                panel.id = 'debug-panel';
+                panel.style.cssText = 'position:absolute; top:0; left:0; right:0; z-index:300; background:rgba(0,0,0,0.92); color:#7CFC9A; font-family:monospace; font-size:10.5px; padding:8px 10px; max-height:40%; overflow-y:auto; white-space:pre-wrap;';
+                panel.onclick = () => panel.remove();
+                document.getElementById('app-root').appendChild(panel);
+            }
+            const time = new Date().toLocaleTimeString('pt-PT');
+            const line = document.createElement('div');
+            line.textContent = `[${time}] ${msg}`;
+            panel.appendChild(line);
+        }
+        function openUserSheet(forced, source) {
+            const label = source || 'unknown';
+            debugLog(`openUserSheet(forced=${forced}, source="${label}") — currentUser era: ${currentUser || 'nenhum'}`);
             if (forced && currentUser) {
-                // We already have a working session for a real user — never force a blocking
-                // re-pick on top of it. If something unexpectedly calls this again, it's a no-op.
+                debugLog(`→ BLOQUEADO pela guarda (currentUser já existia)`);
                 return;
             }
+            debugLog(`→ A ABRIR o seletor de utilizador`);
             closeAllSheets();
             userPickerForced = !!forced;
             renderUserRows();
@@ -1673,20 +1690,27 @@
         const NEARBY_CAT_LABELS = { restaurant: 'Restaurante', cafe: 'Café', bar: 'Bar', fast_food: 'Comida rápida', attraction: 'Atração', viewpoint: 'Miradouro', museum: 'Museu', gallery: 'Galeria' };
 
         function findNearbyPlaces() {
+            debugLog('findNearbyPlaces() — botão "Perto de ti" premido');
             const btn = document.getElementById('nearby-btn');
             if (!navigator.geolocation) { showToast('O teu dispositivo não suporta localização.'); return; }
             btn.classList.add('loading');
+            debugLog('a pedir localização ao navegador...');
             navigator.geolocation.getCurrentPosition(
                 async (pos) => {
+                    debugLog('localização obtida com sucesso');
                     const { latitude, longitude } = pos.coords;
                     lastGeoPosition = { lat: latitude, lng: longitude };
                     placeMeOnMap(latitude, longitude);
                     map.setView([latitude, longitude], 15);
+                    debugLog('a chamar highlightNearestStop()');
                     highlightNearestStop(latitude, longitude);
+                    debugLog('a chamar searchNearbyPOIs()');
                     await searchNearbyPOIs(latitude, longitude);
+                    debugLog('searchNearbyPOIs() terminou');
                     btn.classList.remove('loading');
                 },
                 (err) => {
+                    debugLog('ERRO de geolocalização: código ' + err.code);
                     btn.classList.remove('loading');
                     if (err.code === 1) showToast('Permissão de localização recusada. Ativa-a nas definições do navegador.');
                     else showToast('Não foi possível obter a tua localização.');
@@ -1700,9 +1724,11 @@
             document.getElementById('nearby-list').innerHTML = '<p style="font-size:12px;color:var(--ink-soft);text-align:center;padding:24px 0;"><i class="fa-solid fa-spinner fa-spin"></i> A procurar sítios perto de ti...</p>';
             const query = `[out:json][timeout:15];(node["amenity"~"restaurant|cafe|bar|fast_food"](around:900,${lat},${lng});node["tourism"~"attraction|viewpoint|museum|gallery"](around:900,${lat},${lng}););out center 25;`;
             try {
+                debugLog('a chamar Overpass API...');
                 const res = await fetch('https://overpass-api.de/api/interpreter', { method: 'POST', body: query });
                 if (!res.ok) throw new Error('overpass failed');
                 const data = await res.json();
+                debugLog('Overpass respondeu com ' + (data.elements || []).length + ' elementos');
                 const results = (data.elements || [])
                     .filter(el => el.tags && el.tags.name)
                     .map(el => {
@@ -1715,7 +1741,9 @@
                     .sort((a, b) => a.dist - b.dist)
                     .slice(0, 12);
                 renderNearbyList(results);
+                debugLog('lista renderizada com ' + results.length + ' resultados');
             } catch (e) {
+                debugLog('ERRO na procura: ' + e.message);
                 document.getElementById('nearby-list').innerHTML = '<p style="font-size:12px;color:var(--ink-soft);text-align:center;padding:24px 0;">Não foi possível procurar agora — tenta de novo daqui a pouco.</p>';
             }
         }

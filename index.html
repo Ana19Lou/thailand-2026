@@ -359,7 +359,7 @@
                 <div><span class="trip-status-line" id="trip-status-line" style="display:none;"></span></div>
             </div>
             <div class="header-right">
-                <button class="user-badge" id="user-badge" onclick="openUserSheet(false, 'badge-tap')" style="background:var(--jade);" title="Trocar utilizador">?</button>
+                <button class="user-badge" id="user-badge" onclick="openUserSheet()" style="background:var(--jade);" title="Trocar utilizador">?</button>
                 <button class="icon-btn" id="theme-toggle" title="Alternar tema"><i class="fa-solid fa-moon"></i></button>
                 <div class="day-ring" id="day-ring" style="--pct:0;" onclick="openSheet()">
                     <div class="day-ring-inner">
@@ -569,7 +569,7 @@
             <div class="sheet-handle"></div>
             <div class="note-sheet-body">
                 <h3 class="note-sheet-title">Quem está a usar a app?</h3>
-                <p style="font-size:9px; color:var(--ink-soft); opacity:0.6; margin:-8px 0 8px;">build 2026-08-31-debug1</p>
+                <p style="font-size:9px; color:var(--ink-soft); opacity:0.6; margin:-8px 0 8px;">build 2026-08-31-d</p>
                 <p style="font-size:12px; color:var(--ink-soft); margin:-6px 0 14px;">Cada pessoa guarda a sua própria mala, gastos, notas e progresso neste equipamento.</p>
                 <div id="user-rows"></div>
             </div>
@@ -649,7 +649,6 @@
         const USER_SHEETS = { Ana: GOOGLE_SHEET_CSV_URL, Raquel: GOOGLE_SHEET_CSV_URL };
 
         let currentUser = null;
-        let userPickerForced = false;
         function pKey(base) { return base + '__' + currentUser; }
 
         const DEFAULT_PACKING = [
@@ -673,7 +672,7 @@
         async function bootApp() {
             if (appBooted) return;
             appBooted = true;
-            console.log('Tailândia app — build 2026-08-31-debug1');
+            console.log('Tailândia app — build 2026-08-31-d');
             debugLog('bootApp() a arrancar');
             initTheme();
             initMap();
@@ -692,18 +691,15 @@
                 updateUserBadge();
                 await startAppForUser();
             } else {
-                // Recovery: if the "which user" pointer got lost but one user's actual data
-                // (packing list, visited stops, etc.) is still on this device, resume silently
-                // as that user instead of forcing a re-pick.
+                // No saved user. Try to recover from existing per-user data first; otherwise
+                // just default to the first known user — silently, no blocking picker. Anyone
+                // can switch anytime via the badge in the header.
                 const usersWithData = USERS.filter(u => localStorage.getItem('tailandia_visitados__' + u) !== null);
-                if (usersWithData.length === 1) {
-                    currentUser = usersWithData[0];
-                    localStorage.setItem(STORAGE_USER_KEY, currentUser);
-                    updateUserBadge();
-                    await startAppForUser();
-                } else {
-                    openUserSheet(true, 'boot:no-saved-user');
-                }
+                currentUser = usersWithData.length === 1 ? usersWithData[0] : USERS[0];
+                localStorage.setItem(STORAGE_USER_KEY, currentUser);
+                updateUserBadge();
+                await startAppForUser();
+                showToast(`A usar como ${currentUser} — toca no ícone "${currentUser[0]}" para mudar`);
             }
         }
 
@@ -766,16 +762,8 @@
             line.textContent = `[${time}] ${msg}`;
             panel.appendChild(line);
         }
-        function openUserSheet(forced, source) {
-            const label = source || 'unknown';
-            debugLog(`openUserSheet(forced=${forced}, source="${label}") — currentUser era: ${currentUser || 'nenhum'}`);
-            if (forced && currentUser) {
-                debugLog(`→ BLOQUEADO pela guarda (currentUser já existia)`);
-                return;
-            }
-            debugLog(`→ A ABRIR o seletor de utilizador`);
+        function openUserSheet() {
             closeAllSheets();
-            userPickerForced = !!forced;
             renderUserRows();
             document.getElementById('sheet-overlay').classList.add('open');
             document.getElementById('user-sheet').classList.add('open');
@@ -788,7 +776,6 @@
             currentUser = name;
             localStorage.setItem(STORAGE_USER_KEY, name);
             updateUserBadge();
-            userPickerForced = false;
             closeUserSheet();
             await startAppForUser();
         }
@@ -1403,7 +1390,7 @@
             if (document.getElementById('custom-stop-sheet').classList.contains('open')) { closeCustomStopSheet(); return; }
             if (document.getElementById('category-sheet').classList.contains('open')) { closeCategorySheet(); return; }
             if (document.getElementById('nearby-sheet').classList.contains('open')) { closeNearbySheet(); return; }
-            if (document.getElementById('user-sheet').classList.contains('open')) { if (!userPickerForced) closeUserSheet(); return; }
+            if (document.getElementById('user-sheet').classList.contains('open')) { closeUserSheet(); return; }
             closeSheet();
         }
 

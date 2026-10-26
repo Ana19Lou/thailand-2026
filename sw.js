@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tailandia-2026-v3';
+const CACHE_NAME = 'tailandia-2026-v4';
 const APP_SHELL = [
   './',
   './index.html',
@@ -30,7 +30,7 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
 
   const isAppPage = req.mode === 'navigate';
-  const isMapTile = req.url.includes('cartocdn.com');
+ const isMapTile = req.url.includes('openstreetmap.org') || req.url.includes('cartocdn.com');
 
   if (isAppPage) {
     event.respondWith(

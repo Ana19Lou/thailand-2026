@@ -348,7 +348,10 @@ function copyAndOpenRideApp(schemeUrl, appKey, address) {
 
 function initMap() {
     map = L.map('map', { zoomControl: false }).setView([13.7563, 100.5018], 6);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 19 }).addTo(map);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+        maxZoom: 19,
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
     routeLayerGroup = L.layerGroup().addTo(map);
     setTimeout(() => { map.invalidateSize(); }, 400);
 }
@@ -974,29 +977,31 @@ function findNearbyPlaces() {
 // ATUALIZADO: Aceita o 'type' para reduzir a área (500m comida / 800m atração)
 async function searchNearbyPOIs(lat, lng, type = 'all') {
     openNearbySheet();
-    document.getElementById('nearby-list').innerHTML = '<p style="font-size:12px;color:var(--ink-soft);text-align:center;padding:24px 0;"><i class="fa-solid fa-spinner fa-spin"></i> A procurar sítios perto de ti...</p>';
+    document.getElementById('nearby-list').innerHTML = '<p style="font-size:12px;color:var(--ink-soft);text-align:center;padding:24px 0;"><i class="fa-solid fa-spinner fa-spin"></i> A procurar sítios num raio de 1.5 km...</p>';
     
     let queryPart = '';
     if (type === 'food') {
-        queryPart = `nwr["amenity"~"restaurant|cafe|bar|fast_food|food_court"](around:500,${lat},${lng});`;
+        queryPart = `nwr["amenity"~"restaurant|cafe|bar|fast_food|food_court"](around:1500,${lat},${lng});`;
     } else if (type === 'attraction') {
-        queryPart = `nwr["tourism"~"attraction|viewpoint|museum|gallery"](around:800,${lat},${lng});`;
+        queryPart = `nwr["tourism"~"attraction|viewpoint|museum|gallery"](around:1500,${lat},${lng});`;
     } else {
-        queryPart = `nwr["amenity"~"restaurant|cafe|bar|fast_food"](around:500,${lat},${lng}); nwr["tourism"~"attraction|viewpoint|museum|gallery"](around:800,${lat},${lng});`;
+        queryPart = `nwr["amenity"~"restaurant|cafe|bar|fast_food"](around:1500,${lat},${lng}); nwr["tourism"~"attraction|viewpoint|museum|gallery"](around:1500,${lat},${lng});`;
     }
 
     const query = `[out:json][timeout:15];(${queryPart});out center 20;`;
     
+    // Lista de servidores atualizada (o private.coffee costuma falhar)
     const endpoints = [
         'https://overpass-api.de/api/interpreter',
-        'https://overpass.private.coffee/api/interpreter',
-        'https://overpass.kumi.systems/api/interpreter'
+        'https://lz4.overpass-api.de/api/interpreter',
+        'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
     ];
+
     try {
         let data = null, lastErr = null;
         for (const url of endpoints) {
             const ctrl = new AbortController();
-            const timer = setTimeout(() => ctrl.abort(), 12000);
+            const timer = setTimeout(() => ctrl.abort(), 12000); // 12 seg por tentativa
             try {
                 const res = await fetch(url, {
                     method: 'POST',
@@ -1006,11 +1011,13 @@ async function searchNearbyPOIs(lat, lng, type = 'all') {
                 });
                 if (!res.ok) throw new Error('HTTP ' + res.status);
                 data = await res.json();
-                break;
+                break; // Se um servidor responder bem, para o loop
             } catch (e) { lastErr = e; }
             finally { clearTimeout(timer); }
         }
-        if (!data) throw lastErr || new Error('sem resposta');
+        
+        if (!data) throw lastErr || new Error('sem resposta dos servidores');
+        
         const results = (data.elements || [])
             .filter(el => el.tags && el.tags.name)
             .map(el => {
@@ -1021,10 +1028,12 @@ async function searchNearbyPOIs(lat, lng, type = 'all') {
                 return { name: el.tags.name, cat, dist, lat: elLat, lng: elLng };
             })
             .sort((a, b) => a.dist - b.dist)
-            .slice(0, 12);
+            .slice(0, 15); // Mostrar os 15 mais próximos
+
         renderNearbyList(results);
     } catch (e) {
-        document.getElementById('nearby-list').innerHTML = '<p style="font-size:12px;color:var(--ink-soft);text-align:center;padding:24px 0;">Não foi possível procurar agora — tenta de novo daqui a pouco.</p>';
+        console.error("Overpass erro:", e);
+        document.getElementById('nearby-list').innerHTML = '<p style="font-size:12px;color:var(--ink-soft);text-align:center;padding:24px 0;">Servidores de mapas ocupados. Tenta de novo num instante.</p>';
     }
 }
 

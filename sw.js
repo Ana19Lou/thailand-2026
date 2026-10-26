@@ -1,6 +1,9 @@
-const CACHE_NAME = 'tailandia-2026-v2';
+const CACHE_NAME = 'tailandia-2026-v3';
 const APP_SHELL = [
   './',
+  './index.html',
+  './style.css',
+  './app.js',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
@@ -22,14 +25,12 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Network-first for the html page itself (so updates are picked up when online),
-// cache-first for everything else (fonts, icons, CDN libraries), always falling
-// back to cache when offline.
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
 
   const isAppPage = req.mode === 'navigate';
+  const isMapTile = req.url.includes('cartocdn.com');
 
   if (isAppPage) {
     event.respondWith(
@@ -40,6 +41,23 @@ self.addEventListener('fetch', (event) => {
           return res;
         })
         .catch(() => caches.match(req).then((cached) => cached || caches.match('./')))
+    );
+    return;
+  }
+
+  // Regra específica para o mapa (aceita respostas "opaque" sem CORS nativo)
+  if (isMapTile) {
+    event.respondWith(
+      caches.match(req).then((cached) => {
+        if (cached) return cached;
+        return fetch(req).then((res) => {
+          if (res && (res.status === 200 || res.type === 'opaque')) {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+          }
+          return res;
+        }).catch(() => cached);
+      })
     );
     return;
   }

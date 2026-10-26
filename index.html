@@ -37,7 +37,7 @@
         .app-container {
             display: flex; flex-direction: column; height: 100dvh; width: 100%;
             max-width: 800px; margin: 0 auto; background-color: var(--bg);
-            position: relative; overflow: hidden; box-shadow: 0 0 30px rgba(0,0,0,0.3);
+            position: relative; overflow: hidden; overflow: clip; box-shadow: 0 0 30px rgba(0,0,0,0.3);
             transition: background-color 0.3s ease;
         }
         .content-area {
@@ -150,8 +150,9 @@
         .sheet-overlay.open { display: block; animation: fadeIn 0.2s ease; }
         .sheet { position: absolute; left:0; right:0; bottom:0; z-index: 95; background: var(--surface); border-radius: 24px 24px 0 0;
             max-height: 78%; display:flex; flex-direction:column; transform: translateY(100%); transition: transform 0.28s cubic-bezier(.22,.68,.36,1);
-            padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -10px 30px rgba(0,0,0,0.25); }
-        .sheet.open { transform: translateY(0); animation: sheetUp 0.28s cubic-bezier(.22,.68,.36,1); }
+            padding-bottom: env(safe-area-inset-bottom); box-shadow: 0 -10px 30px rgba(0,0,0,0.25);
+            visibility: hidden; transition: transform 0.28s cubic-bezier(.22,.68,.36,1), visibility 0s linear 0.28s; }
+        .sheet.open { visibility: visible; transition: transform 0.28s cubic-bezier(.22,.68,.36,1), visibility 0s; transform: translateY(0); animation: sheetUp 0.28s cubic-bezier(.22,.68,.36,1); }
         .sheet-handle { width: 40px; height: 4px; background: var(--line); border-radius: 99px; margin: 10px auto 4px; }
         .sheet-tabs { display:flex; gap:6px; padding: 8px 16px 4px; overflow-x:auto; scrollbar-width:none; mask-image: linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%); -webkit-mask-image: linear-gradient(to right, transparent 0, black 16px, black calc(100% - 16px), transparent 100%); }
         .sheet-tabs::-webkit-scrollbar { display:none; }
@@ -391,7 +392,7 @@
         </nav>
 
         <!-- Tools bottom sheet -->
-        <div class="sheet-overlay" id="sheet-overlay" onclick="closeAnySheet()"></div>
+        <div class="sheet-overlay" id="sheet-overlay" onclick="closeAllSheets()"></div>
         <div class="sheet" id="tools-sheet">
             <div class="sheet-handle"></div>
             <div class="sheet-tabs">
@@ -569,7 +570,7 @@
             <div class="sheet-handle"></div>
             <div class="note-sheet-body">
                 <h3 class="note-sheet-title">Quem está a usar a app?</h3>
-                <p style="font-size:9px; color:var(--ink-soft); opacity:0.6; margin:-8px 0 8px;">build 2026-08-31-d</p>
+                <p style="font-size:9px; color:var(--ink-soft); opacity:0.6; margin:-8px 0 8px;">build 2026-10-26-f</p>
                 <p style="font-size:12px; color:var(--ink-soft); margin:-6px 0 14px;">Cada pessoa guarda a sua própria mala, gastos, notas e progresso neste equipamento.</p>
                 <div id="user-rows"></div>
             </div>
@@ -672,8 +673,18 @@
         async function bootApp() {
             if (appBooted) return;
             appBooted = true;
-            console.log('Tailândia app — build 2026-08-31-d');
+            console.log('Tailândia app — build 2026-10-26-f');
             debugLog('bootApp() a arrancar');
+            const userSheetEl = document.getElementById('user-sheet');
+            if (userSheetEl) {
+                new MutationObserver((mutations) => {
+                    mutations.forEach(m => {
+                        if (m.attributeName === 'class' && userSheetEl.classList.contains('open')) {
+                            debugLog('👁 OBSERVER: user-sheet ganhou .open — stack: ' + (new Error().stack || '').split('\n').slice(1, 5).join(' | '));
+                        }
+                    });
+                }).observe(userSheetEl, { attributes: true });
+            }
             initTheme();
             initMap();
             initCurrency();
@@ -748,31 +759,33 @@
             document.querySelectorAll('.sheet').forEach(s => s.classList.remove('open'));
             document.getElementById('sheet-overlay').classList.remove('open');
         }
-        function debugLog(msg) {
-            let panel = document.getElementById('debug-panel');
-            if (!panel) {
-                panel = document.createElement('div');
-                panel.id = 'debug-panel';
-                panel.style.cssText = 'position:absolute; top:0; left:0; right:0; z-index:300; background:rgba(0,0,0,0.92); color:#7CFC9A; font-family:monospace; font-size:10.5px; padding:8px 10px; max-height:40%; overflow-y:auto; white-space:pre-wrap;';
-                panel.onclick = () => panel.remove();
-                document.getElementById('app-root').appendChild(panel);
-            }
-            const time = new Date().toLocaleTimeString('pt-PT');
-            const line = document.createElement('div');
-            line.textContent = `[${time}] ${msg}`;
-            panel.appendChild(line);
+        function centerInScroller(scroller, el, axis) {
+            if (!scroller || !el) return;
+            const sr = scroller.getBoundingClientRect(), er = el.getBoundingClientRect();
+            if (axis === 'x') scroller.scrollTo({ left: scroller.scrollLeft + (er.left - sr.left) - (sr.width - er.width) / 2, behavior: 'smooth' });
+            else scroller.scrollTo({ top: scroller.scrollTop + (er.top - sr.top) - (sr.height - er.height) / 2, behavior: 'smooth' });
         }
+        // Safety net: the app shell must never scroll
+        window.addEventListener('load', () => {
+            const root = document.getElementById('app-root');
+            root.addEventListener('scroll', () => { root.scrollTop = 0; root.scrollLeft = 0; });
+        });
+
+        function debugLog(msg) { console.log('[app]', msg); }
         function openUserSheet() {
+            debugLog('openUserSheet() CHAMADO — stack: ' + (new Error().stack || '').split('\n').slice(1, 4).join(' | '));
             closeAllSheets();
             renderUserRows();
             document.getElementById('sheet-overlay').classList.add('open');
             document.getElementById('user-sheet').classList.add('open');
         }
         function closeUserSheet() {
+            debugLog('closeUserSheet() chamado');
             document.getElementById('user-sheet').classList.remove('open');
             document.getElementById('sheet-overlay').classList.remove('open');
         }
         async function selectUser(name) {
+            debugLog('selectUser("' + name + '") chamado');
             currentUser = name;
             localStorage.setItem(STORAGE_USER_KEY, name);
             updateUserBadge();
@@ -1287,7 +1300,7 @@
 
             document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
             const activeNav = document.getElementById(`nav-${day.id}`); activeNav.classList.add('active');
-            activeNav.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            centerInScroller(document.getElementById('bottom-nav'), activeNav, 'x');
             renderRouteOnMap(day); document.getElementById('content-container').scrollTop = 0;
             loadWeatherForDay(day);
             loadDayHero(day);
@@ -1973,7 +1986,7 @@
             setTimeout(() => {
                 const row = document.getElementById(`row-${best.day.id}_${best.i}`);
                 if (row) {
-                    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    centerInScroller(document.getElementById('content-container'), row, 'y');
                     row.classList.add('nearest-highlight');
                     setTimeout(() => row.classList.remove('nearest-highlight'), 3600);
                 }
@@ -2082,7 +2095,7 @@
             document.querySelectorAll('.sheet-pane').forEach(p => p.classList.remove('active'));
             tabEl.classList.add('active');
             document.getElementById(tabEl.dataset.pane).classList.add('active');
-            tabEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            centerInScroller(tabEl.parentElement, tabEl, 'x');
             if (tabEl.dataset.pane === 'pane-currency') fetchExchangeRate(false);
             if (tabEl.dataset.pane === 'pane-memories') renderMemories();
             if (tabEl.dataset.pane === 'pane-phrases') renderPhrases(document.getElementById('phrase-search').value);

@@ -990,18 +990,18 @@ async function searchNearbyPOIs(lat, lng, type = 'all') {
 
     const query = `[out:json][timeout:15];(${queryPart});out center 20;`;
     
-    // Lista de servidores atualizada (o private.coffee costuma falhar)
+    // Lista de servidores atualizada e reordenada (do mais rápido/estável para o mais sobrecarregado)
     const endpoints = [
-        'https://overpass-api.de/api/interpreter',
-        'https://lz4.overpass-api.de/api/interpreter',
-        'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
+        'https://overpass.osm.ch/api/interpreter',       // Servidor suíço (muito fiável e rápido)
+        'https://overpass.kumi.systems/api/interpreter', // Alternativa robusta
+        'https://overpass-api.de/api/interpreter'        // Oficial (costuma ser o mais sobrecarregado, fica para último)
     ];
 
     try {
         let data = null, lastErr = null;
         for (const url of endpoints) {
             const ctrl = new AbortController();
-            const timer = setTimeout(() => ctrl.abort(), 12000); // 12 seg por tentativa
+            const timer = setTimeout(() => ctrl.abort(), 8000);
             try {
                 const res = await fetch(url, {
                     method: 'POST',

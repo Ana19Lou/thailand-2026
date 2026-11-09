@@ -1,4 +1,5 @@
-const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/14TPUDpY6H1zdEYGDVELXBw4QDgmC7tv57lcs_iweP5I/gviz/tq?tqx=out:csv&gid=0";
+const GOOGLE_SHEET_CSV_URL_ANA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTyeqnTJw7Ri8u47IQ7R_MWM0AKiaiHVWMJz6VkU4gro4MqWWHrrVW9X4dcSKH9vSSwh5Sd1z0wd9GM/pub?gid=1262863304&single=true&output=csv";
+const GOOGLE_SHEET_CSV_URL_RAQUEL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRSkWbS9yKQc9FwOBztSwuJgQ2QNJkxxXdVoP4PAlkzEpmwWdNbtGlW9HAanh4myezpApZNco9pYDrT/pub?gid=1962618650&single=true&output=csv";
 const STORAGE_DATA_KEY = 'tailandia_roteiro_offline';
 const STORAGE_SYNC_TIME_KEY = 'tailandia_ultima_sync';
 const STORAGE_VISITED_KEY = 'tailandia_visitados';
@@ -11,7 +12,7 @@ const STORAGE_USER_KEY = 'tailandia_utilizador_atual';
 
 const USERS = ['Ana', 'Raquel'];
 const USER_COLORS = { Ana: '#C9A227', Raquel: '#3B82C4' };
-const USER_SHEETS = { Ana: GOOGLE_SHEET_CSV_URL, Raquel: GOOGLE_SHEET_CSV_URL };
+const USER_SHEETS = { Ana: GOOGLE_SHEET_CSV_URL_ANA, Raquel: GOOGLE_SHEET_CSV_URL_RAQUEL };
 
 let currentUser = null;
 function pKey(base) { return base + '__' + currentUser; }

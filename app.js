@@ -14,6 +14,11 @@ const USERS = ['Ana', 'Raquel'];
 const USER_COLORS = { Ana: '#C9A227', Raquel: '#3B82C4' };
 const USER_SHEETS = { Ana: GOOGLE_SHEET_CSV_URL_ANA, Raquel: GOOGLE_SHEET_CSV_URL_RAQUEL };
 
+const USER_API_URLS = {
+    Ana: "https://script.google.com/macros/s/AKfycbwPzw4OtgbEtLCiBermn2zlorsdrH4J48u-uduucLcL8mNAFc1mrg3xpez7B0CV9yTsOA/exec",
+    Raquel: "https://script.google.com/macros/s/AKfycby8rsoyEXMfMPZsLriaAvI76YGCWX0BJajqLM-hn98XhTwP1m7-zrJeObllawzZXNed/exec"
+};
+
 let currentUser = null;
 function pKey(base) { return base + '__' + currentUser; }
 
@@ -193,6 +198,7 @@ async function fetchDadosDoRoteiro() {
                 const horaAtual = new Date().toLocaleString('pt-PT');
                 localStorage.setItem(pKey(STORAGE_SYNC_TIME_KEY), horaAtual);
                 mostrarBannerSucesso(horaAtual);
+                fetchNotasDoExcel();
                 renderUI(globalItinerary);
             }
         });
@@ -208,6 +214,24 @@ async function fetchDadosDoRoteiro() {
         }
     } finally {
         btns.forEach(b => b.classList.remove('syncing'));
+    }
+}
+
+async function fetchNotasDoExcel() {
+    const apiUrl = USER_API_URLS[currentUser];
+    if (!apiUrl || apiUrl.includes("COLA_AQUI")) return;
+    try {
+        const res = await fetch(apiUrl);
+        if (!res.ok) return;
+        const remoteNotes = await res.json();
+        if (remoteNotes && typeof remoteNotes === 'object') {
+            const localNotes = loadJSON(pKey(STORAGE_NOTES_KEY), {});
+            const merged = { ...localNotes, ...remoteNotes };
+            saveJSON(pKey(STORAGE_NOTES_KEY), merged);
+            if (globalItinerary.length > 0) renderUI(globalItinerary);
+        }
+    } catch (e) {
+        console.warn("Sem ligação às notas do Excel, a usar cache local.");
     }
 }
 
@@ -728,32 +752,62 @@ async function onNotePhotoSelected(event) {
     const drop = document.getElementById('photo-drop');
     drop.innerHTML = `<span><i class="fa-solid fa-spinner fa-spin"></i> a preparar foto...</span>`;
     try {
-        const dataUrl = await compressImage(file, 800, 0.7);
+        // 450px e qualidade 0.6 garante que a imagem cabe numa célula do Google Sheets (<50k chars)
+        const dataUrl = await compressImage(file, 450, 0.6);
         drop.innerHTML = `<img src="${dataUrl}">`;
     } catch (e) {
         drop.innerHTML = `<span><i class="fa-solid fa-triangle-exclamation"></i> não foi possível carregar a foto</span>`;
     }
 }
-function saveNote() {
+async function saveNote() {
     if (!currentNoteKey) return;
     const notes = loadJSON(pKey(STORAGE_NOTES_KEY), {});
     const text = document.getElementById('note-text').value.trim();
     const img = document.querySelector('#photo-drop img');
     const photo = img ? img.src : null;
+    const stopName = document.getElementById('note-sheet-title').textContent;
+
     if (!text && !photo) { delete notes[currentNoteKey]; }
     else { notes[currentNoteKey] = { text, photo }; }
-    try { saveJSON(pKey(STORAGE_NOTES_KEY), notes); } 
-    catch (e) { alert('Não foi possível guardar — a foto pode ser demasiado grande. Tenta uma foto mais pequena ou só texto.'); return; }
-    refreshNotePreview(currentNoteKey);
+    
+    saveJSON(pKey(STORAGE_NOTES_KEY), notes);
+    const keyToSync = currentNoteKey;
+    refreshNotePreview(keyToSync);
     closeNoteSheet();
+
+    const apiUrl = USER_API_URLS[currentUser];
+    if (apiUrl && !apiUrl.includes("COLA_AQUI")) {
+        showToast("☁️ A guardar nota e foto no Excel...");
+        fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+                action: (!text && !photo) ? 'deleteNote' : 'saveNote',
+                key: keyToSync,
+                stopName,
+                text,
+                photo
+            })
+        }).then(() => showToast("✅ Guardado no Excel!")).catch(() => showToast("⚠️ Guardado apenas no telemóvel (sem rede)"));
+    }
 }
-function deleteNote() {
+async function deleteNote() {
     if (!currentNoteKey) return;
     const notes = loadJSON(pKey(STORAGE_NOTES_KEY), {});
-    delete notes[currentNoteKey];
+    const keyToDelete = currentNoteKey;
+    delete notes[keyToDelete];
     saveJSON(pKey(STORAGE_NOTES_KEY), notes);
-    refreshNotePreview(currentNoteKey);
+    refreshNotePreview(keyToDelete);
     closeNoteSheet();
+
+    const apiUrl = USER_API_URLS[currentUser];
+    if (apiUrl && !apiUrl.includes("COLA_AQUI")) {
+        fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: 'deleteNote', key: keyToDelete })
+        }).catch(() => {});
+    }
 }
 function refreshNotePreview(key) {
     const row = document.getElementById(`row-${key}`);
@@ -1425,20 +1479,37 @@ function closeCustomStopSheet() {
     document.getElementById('sheet-overlay').classList.remove('open');
     currentCustomStopDay = null;
 }
-function saveCustomStop() {
+async function saveCustomStop() {
     if (!currentCustomStopDay) return;
     const name = document.getElementById('custom-stop-name').value.trim();
     if (!name) return;
     const note = document.getElementById('custom-stop-note').value.trim();
     const link = document.getElementById('custom-stop-link').value.trim();
-    const key = 'tailandia_paragens_' + currentCustomStopDay;
+    const dayId = currentCustomStopDay;
+    const day = globalItinerary.find(d => d.id === dayId);
+
+    const key = 'tailandia_paragens_' + dayId;
     const list = loadJSON(pKey(key), []);
     list.push({ id: 'c' + Date.now(), name, note, link, done: false });
     saveJSON(pKey(key), list);
-    const dayId = currentCustomStopDay;
     closeCustomStopSheet();
-    const day = globalItinerary.find(d => d.id === dayId);
     if (day) rerenderDayPanel(day);
+
+    const apiUrl = USER_API_URLS[currentUser];
+    if (apiUrl && !apiUrl.includes("COLA_AQUI") && day) {
+        showToast("☁️ A adicionar paragem ao Excel...");
+        fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({
+                action: 'addStop',
+                dayNum: day.dayNum,
+                name,
+                note,
+                link
+            })
+        }).then(() => showToast("✅ Paragem gravada no Excel!")).catch(() => showToast("⚠️ Guardada localmente (sem rede)"));
+    }
 }
 function toggleCustomStop(dayId, stopId) {
     if (navigator.vibrate) navigator.vibrate(50);

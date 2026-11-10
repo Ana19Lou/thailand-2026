@@ -1,9 +1,9 @@
-const CACHE_NAME = 'tailandia-2026-v6';
+const CACHE_NAME = 'tailandia-2026-v7';
 const APP_SHELL = [
   './',
   './index.html',
-  './style.css?v=6',
-  './app.js?v=6',
+  './style.css?v=7',
+  './app.js?v=7',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
@@ -29,10 +29,11 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
 
-  // Nunca fazer cache do Google Sheets nem de APIs ao vivo
+  // Nunca fazer cache do Google Sheets, Apps Script ou APIs dinâmicas
   if (
     req.url.includes('docs.google.com') ||
     req.url.includes('googleusercontent.com') ||
+    req.url.includes('script.google.com') ||
     req.url.includes('overpass') ||
     req.url.includes('open-meteo.com') ||
     req.url.includes('frankfurter.dev')

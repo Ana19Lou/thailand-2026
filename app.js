@@ -1,6 +1,6 @@
 const GOOGLE_SHEET_CSV_URL_ANA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTyeqnTJw7Ri8u47IQ7R_MWM0AKiaiHVWMJz6VkU4gro4MqWWHrrVW9X4dcSKH9vSSwh5Sd1z0wd9GM/pub?gid=1262863304&single=true&output=csv";
 const GOOGLE_SHEET_CSV_URL_RAQUEL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRSkWbS9yKQc9FwOBztSwuJgQ2QNJkxxXdVoP4PAlkzEpmwWdNbtGlW9HAanh4myezpApZNco9pYDrT/pub?gid=1962618650&single=true&output=csv";
-const STORAGE_DATA_KEY = 'tailandia_roteiro_offline';
+const STORAGE_DATA_KEY = 'tailandia_roteiro_offline_v2'; // v2 limpa o cache do Excel antigo
 const STORAGE_SYNC_TIME_KEY = 'tailandia_ultima_sync';
 const STORAGE_VISITED_KEY = 'tailandia_visitados';
 const STORAGE_PACKING_KEY = 'tailandia_mala';
@@ -38,8 +38,12 @@ let appBooted = false;
 async function bootApp() {
     if (appBooted) return;
     appBooted = true;
-    console.log('Tailândia app — build 2026-10-26-g');
+    console.log('Tailândia app — build 2026-11-10');
     
+    // Limpa resíduos do Excel antigo no localStorage
+    localStorage.removeItem('tailandia_roteiro_offline__Ana');
+    localStorage.removeItem('tailandia_roteiro_offline__Raquel');
+
     initTheme();
     initMap();
     initCurrency();
@@ -67,6 +71,8 @@ async function bootApp() {
 }
 
 async function startAppForUser() {
+    globalItinerary = [];
+    currentDayIndex = 0;
     visitedMap = loadJSON(pKey(STORAGE_VISITED_KEY), {});
     const dadosOffline = localStorage.getItem(pKey(STORAGE_DATA_KEY));
     if (dadosOffline && dadosOffline !== "[]") {
@@ -165,13 +171,13 @@ async function fetchDadosDoRoteiro() {
     if (!currentUser) return;
     const btns = document.querySelectorAll('.sync-btn');
     btns.forEach(b => b.classList.add('syncing'));
-    document.getElementById('header-location').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> A sincronizar Excel...';
+    document.getElementById('header-location').innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> A sincronizar Excel (${currentUser})...`;
 
-    const sheetUrl = USER_SHEETS[currentUser] || GOOGLE_SHEET_CSV_URL;
+    const sheetUrl = USER_SHEETS[currentUser] || GOOGLE_SHEET_CSV_URL_ANA;
     const urlDireta = sheetUrl + "&_t=" + new Date().getTime();
 
     try {
-        const res = await fetch(urlDireta);
+        const res = await fetch(urlDireta, { cache: 'no-store' });
         if (!res.ok) throw new Error("Falha ao ir buscar dados");
         const textoCsv = await res.text();
 
@@ -188,13 +194,14 @@ async function fetchDadosDoRoteiro() {
             }
         });
     } catch (error) {
+        console.error("Erro ao sincronizar Excel:", error);
         const dadosOffline = localStorage.getItem(pKey(STORAGE_DATA_KEY));
         if (dadosOffline && dadosOffline !== "[]") {
             globalItinerary = JSON.parse(dadosOffline);
             renderUI(globalItinerary);
             mostrarBannerAviso("A usar dados locais (Modo Offline)");
         } else {
-            mostrarEstadoErro("Não foi possível ligar à folha. Verifica se está publicada na Web.");
+            mostrarEstadoErro("Não foi possível ligar à folha de " + currentUser + ". Verifica se está publicada na Web.");
         }
     } finally {
         btns.forEach(b => b.classList.remove('syncing'));

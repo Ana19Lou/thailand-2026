@@ -1,9 +1,9 @@
-const CACHE_NAME = 'tailandia-2026-v5';
+const CACHE_NAME = 'tailandia-2026-v6';
 const APP_SHELL = [
   './',
   './index.html',
-  './style.css',
-  './app.js',
+  './style.css?v=6',
+  './app.js?v=6',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
@@ -29,7 +29,7 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
 
-  // 1. Nunca fazer cache no Service Worker de APIs dinâmicas / Google Sheets
+  // Nunca fazer cache do Google Sheets nem de APIs ao vivo
   if (
     req.url.includes('docs.google.com') ||
     req.url.includes('googleusercontent.com') ||
@@ -41,14 +41,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2. Network-First para os ficheiros da app (HTML, JS, CSS, Manifest)
-  // Garante que qualquer alteração que faças no GitHub entra logo em vigor
+  const urlPath = new URL(req.url).pathname;
   const isAppFile = req.mode === 'navigate' || 
-                    req.url.endsWith('.js') || 
-                    req.url.endsWith('.css') || 
-                    req.url.endsWith('.json') ||
-                    req.url.endsWith('.html');
+                    urlPath.endsWith('.js') || 
+                    urlPath.endsWith('.css') || 
+                    urlPath.endsWith('.json') ||
+                    urlPath.endsWith('.html');
 
+  // Network-First para todos os ficheiros de código da app
   if (isAppFile) {
     event.respondWith(
       fetch(req)
@@ -64,7 +64,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 3. Cache-First para os blocos do mapa (funcionar offline)
+  // Cache-First para o mapa e fontes/ícones
   const isMapTile = req.url.includes('openstreetmap.org') || req.url.includes('cartocdn.com');
   if (isMapTile) {
     event.respondWith(
@@ -82,7 +82,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 4. Cache-First para ícones e fontes externas
   event.respondWith(
     caches.match(req).then((cached) => {
       if (cached) return cached;

@@ -1,6 +1,6 @@
 const GOOGLE_SHEET_CSV_URL_ANA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTyeqnTJw7Ri8u47IQ7R_MWM0AKiaiHVWMJz6VkU4gro4MqWWHrrVW9X4dcSKH9vSSwh5Sd1z0wd9GM/pub?gid=1262863304&single=true&output=csv";
 const GOOGLE_SHEET_CSV_URL_RAQUEL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRSkWbS9yKQc9FwOBztSwuJgQ2QNJkxxXdVoP4PAlkzEpmwWdNbtGlW9HAanh4myezpApZNco9pYDrT/pub?gid=1962618650&single=true&output=csv";
-const STORAGE_DATA_KEY = 'tailandia_roteiro_offline_v2'; // v2 limpa o cache do Excel antigo
+const STORAGE_DATA_KEY = 'tailandia_roteiro_offline_v6'; // Nova chave para ignorar o Excel inicial
 const STORAGE_SYNC_TIME_KEY = 'tailandia_ultima_sync';
 const STORAGE_VISITED_KEY = 'tailandia_visitados';
 const STORAGE_PACKING_KEY = 'tailandia_mala';
@@ -38,11 +38,14 @@ let appBooted = false;
 async function bootApp() {
     if (appBooted) return;
     appBooted = true;
-    console.log('Tailândia app — build 2026-11-10');
+    console.log('Tailândia app — build v6');
     
-    // Limpa resíduos do Excel antigo no localStorage
-    localStorage.removeItem('tailandia_roteiro_offline__Ana');
-    localStorage.removeItem('tailandia_roteiro_offline__Raquel');
+    // Apaga o Excel inicial que ficou guardado nas chaves antigas do navegador
+    ['tailandia_roteiro_offline', 'tailandia_roteiro_offline_v2'].forEach(k => {
+        localStorage.removeItem(k);
+        localStorage.removeItem(k + '__Ana');
+        localStorage.removeItem(k + '__Raquel');
+    });
 
     initTheme();
     initMap();
@@ -173,12 +176,12 @@ async function fetchDadosDoRoteiro() {
     btns.forEach(b => b.classList.add('syncing'));
     document.getElementById('header-location').innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> A sincronizar Excel (${currentUser})...`;
 
+    // Usa o URL limpo (sem &_t=) para não dar erro 400 nos links /pub da Google
     const sheetUrl = USER_SHEETS[currentUser] || GOOGLE_SHEET_CSV_URL_ANA;
-    const urlDireta = sheetUrl + "&_t=" + new Date().getTime();
 
     try {
-        const res = await fetch(urlDireta, { cache: 'no-store' });
-        if (!res.ok) throw new Error("Falha ao ir buscar dados");
+        const res = await fetch(sheetUrl, { cache: 'no-store' });
+        if (!res.ok) throw new Error("HTTP " + res.status);
         const textoCsv = await res.text();
 
         Papa.parse(textoCsv, {
